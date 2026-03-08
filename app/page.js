@@ -1,65 +1,57 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-green-700">
+      <header className="bg-blue-950 px-6 py-4 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">💊</span>
+          <div>
+            <h1 className="text-white text-xl font-bold">Medical SaaS</h1>
+            <p className="text-blue-300 text-xs">Smart billing for medical stores</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        <Link href="/login"
+          className="bg-green-500 hover:bg-green-400 text-white px-5 py-2 rounded-lg font-semibold text-sm transition">
+          Login
+        </Link>
+      </header>
+
+      <section className="text-center py-20 px-6">
+        <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
+          Fastest Billing Software<br />
+          <span className="text-green-400">for Your Medical Store</span>
+        </h2>
+        <p className="text-blue-200 text-lg mb-8 max-w-xl mx-auto">
+          GST Bills · Stock Management · Credit Tracking · Doctor Prescription — all in one place.
+        </p>
+        <Link href="/register"
+          className="bg-green-500 hover:bg-green-400 text-white px-10 py-4 rounded-xl font-bold text-lg shadow-lg transition">
+          Start Free Trial
+        </Link>
+      </section>
+
+      <section className="max-w-6xl mx-auto px-6 pb-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { icon: "🧾", title: "Fast GST Billing", desc: "Generate bills in minutes, send via WhatsApp" },
+          { icon: "📦", title: "Stock Management", desc: "Expiry alerts, batch tracking, low stock warnings" },
+          { icon: "💰", title: "Credit Tracking", desc: "A/R aging — see who owes how much, since when" },
+          { icon: "🏥", title: "Doctor + Pharmacy", desc: "Digital prescription workflow — paperless counter" },
+          { icon: "📊", title: "Reports & Profit", desc: "Item-wise profit, daily/monthly sales charts" },
+          { icon: "🌐", title: "Your Own Website", desc: "Professional website on your domain — included" },
+        ].map((f, i) => (
+          <div key={i} className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition">
+            <div className="text-4xl mb-3">{f.icon}</div>
+            <h3 className="text-white font-bold text-lg mb-1">{f.title}</h3>
+            <p className="text-blue-200 text-sm">{f.desc}</p>
+          </div>
+        ))}
+      </section>
+
+      <footer className="text-center py-6 text-blue-300 text-sm border-t border-white/10">
+        © 2026 Medical SaaS — Built for India
+      </footer>
+    </main>
   );
 }
+
