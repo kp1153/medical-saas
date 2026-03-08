@@ -6,7 +6,6 @@ export default async function Profit() {
   const sold = await db.select().from(saleItems);
   const purchased = await db.select().from(purchaseItems);
 
-  // medicine-wise profit calculate करो
   const medicineMap = {};
 
   for (const item of sold) {
@@ -98,4 +97,3 @@ export default async function Profit() {
     </div>
   );
 }
-

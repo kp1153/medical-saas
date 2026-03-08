@@ -1,0 +1,3447 @@
+﻿===== D:\medical-saas\app\api\lab-reports\[id]\route.js =====
+import { db } from "@/lib/db";
+import { labReports } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+
+export async function PUT(req, { params }) {
+  const { id } = await params;
+  const body = await req.json();
+  await db.update(labReports).set({
+    result: body.result,
+    reportDate: body.reportDate || null,
+  }).where(eq(labReports.id, parseInt(id)));
+  return NextResponse.json({ success: true });
+}
+===== D:\medical-saas\app\api\lab-reports\route.js =====
+import { db } from "@/lib/db";
+import { labReports } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const patientId = searchParams.get("patientId");
+  if (patientId) {
+    const all = await db.select().from(labReports).where(eq(labReports.patientId, parseInt(patientId)));
+    return NextResponse.json(all);
+  }
+  const all = await db.select().from(labReports);
+  return NextResponse.json(all);
+}
+
+export async function POST(req) {
+  const body = await req.json();
+  const inserted = await db.insert(labReports).values({
+    patientId: body.patientId,
+    prescriptionId: body.prescriptionId || null,
+    category: body.category,
+    testName: body.testName,
+    result: body.result || null,
+    reportDate: body.reportDate || null,
+  }).returning({ id: labReports.id });
+  return NextResponse.json({ success: true, id: inserted[0].id });
+}
+===== D:\medical-saas\app\api\login\route.js =====
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+
+export async function POST(req) {
+  const { password } = await req.json();
+
+  if (password !== process.env.SHOP_PASSWORD) {
+    return NextResponse.json({ success: false, message: "Wrong password" });
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set("auth", process.env.SHOP_PASSWORD, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+
+  return NextResponse.json({ success: true });
+}
+===== D:\medical-saas\app\api\logout\route.js =====
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+
+export async function GET() {
+  const cookieStore = await cookies();
+  cookieStore.delete("auth");
+  return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"));
+}
+===== D:\medical-saas\app\api\medicines\[id]\route.js =====
+import { db } from "@/lib/db";
+import { medicines } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+
+export async function GET(req, { params }) {
+  const { id } = await params;
+  const result = await db.select().from(medicines).where(eq(medicines.id, parseInt(id))).limit(1);
+  return NextResponse.json(result[0] || null);
+}
+
+export async function PUT(req, { params }) {
+  const { id } = await params;
+  const body = await req.json();
+  await db.update(medicines).set({
+    name: body.name,
+    generic: body.generic || null,
+    company: body.company || null,
+    batch: body.batch || null,
+    expiry: body.expiry || null,
+    mrp: parseFloat(body.mrp),
+    purchasePrice: body.purchasePrice ? parseFloat(body.purchasePrice) : null,
+    stock: parseInt(body.stock) || 0,
+    unit: body.unit || "strip",
+    rack: body.rack || null,
+    hsn: body.hsn || null,
+    gst: parseFloat(body.gst) || 12,
+  }).where(eq(medicines.id, parseInt(id)));
+  return NextResponse.json({ success: true });
+}
+===== D:\medical-saas\app\api\medicines\route.js =====
+import { db } from "@/lib/db";
+import { medicines } from "@/lib/schema";
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  const all = await db.select().from(medicines);
+  return NextResponse.json(all);
+}
+
+export async function POST(req) {
+  const body = await req.json();
+  await db.insert(medicines).values({
+    name: body.name,
+    generic: body.generic || null,
+    company: body.company || null,
+    batch: body.batch || null,
+    expiry: body.expiry || null,
+    mrp: parseFloat(body.mrp),
+    purchasePrice: body.purchasePrice ? parseFloat(body.purchasePrice) : null,
+    stock: parseInt(body.stock) || 0,
+    unit: body.unit || "strip",
+    rack: body.rack || null,
+    hsn: body.hsn || null,
+    gst: parseFloat(body.gst) || 12,
+  });
+  return NextResponse.json({ success: true });
+}
+
+
+===== D:\medical-saas\app\api\patients\[id]\route.js =====
+import { db } from "@/lib/db";
+import { patients } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+
+export async function GET(req, { params }) {
+  const { id } = await params;
+  const result = await db.select().from(patients).where(eq(patients.id, parseInt(id))).limit(1);
+  return NextResponse.json(result[0] || null);
+}
+===== D:\medical-saas\app\api\patients\route.js =====
+import { db } from "@/lib/db";
+import { patients } from "@/lib/schema";
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  const all = await db.select().from(patients);
+  return NextResponse.json(all);
+}
+
+export async function POST(req) {
+  const body = await req.json();
+  await db.insert(patients).values({
+    name: body.name,
+    phone: body.phone || null,
+    address: body.address || null,
+    age: body.age ? parseInt(body.age) : null,
+    gender: body.gender || null,
+  });
+  return NextResponse.json({ success: true });
+}
+
+
+===== D:\medical-saas\app\api\prescriptions\[id]\route.js =====
+import { db } from "@/lib/db";
+import { prescriptions } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+
+export async function GET(req, { params }) {
+  const { id } = await params;
+  const result = await db.select().from(prescriptions).where(eq(prescriptions.id, parseInt(id))).limit(1);
+  if (!result.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(result[0]);
+}
+===== D:\medical-saas\app\api\prescriptions\route.js =====
+import { db } from "@/lib/db";
+import { prescriptions } from "@/lib/schema";
+import { NextResponse } from "next/server";
+
+export async function POST(req) {
+  const body = await req.json();
+  const inserted = await db.insert(prescriptions).values({
+    patientId: body.patientId,
+    diagnosis: body.diagnosis || null,
+    notes: body.notes || null,
+    medicines: JSON.stringify(body.medicines),
+    sentToPharmacy: 1,
+  }).returning({ id: prescriptions.id });
+  return NextResponse.json({ success: true, id: inserted[0].id });
+}
+===== D:\medical-saas\app\api\purchases\route.js =====
+import { db } from "@/lib/db";
+import { purchases, purchaseItems, medicines } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  const all = await db.select().from(purchases);
+  return NextResponse.json(all);
+}
+
+export async function POST(req) {
+  const body = await req.json();
+
+  const inserted = await db.insert(purchases).values({
+    supplierId: body.supplierId ? parseInt(body.supplierId) : null,
+    supplierName: body.supplierName || null,
+    invoiceNo: body.invoiceNo || null,
+    totalAmount: body.totalAmount,
+    paidAmount: 0,
+  }).returning({ id: purchases.id });
+
+  const purchaseId = inserted[0].id;
+
+  for (const item of body.items) {
+    if (!item.medicineName) continue;
+
+    await db.insert(purchaseItems).values({
+      purchaseId,
+      medicineName: item.medicineName,
+      batch: item.batch || null,
+      expiry: item.expiry || null,
+      qty: parseInt(item.qty) || 0,
+      purchasePrice: parseFloat(item.purchasePrice) || 0,
+      mrp: parseFloat(item.mrp) || 0,
+      gst: parseFloat(item.gst) || 12,
+      amount: parseFloat(item.amount) || 0,
+    });
+
+    // update stock in medicines table
+    const existing = await db.select().from(medicines)
+      .where(eq(medicines.name, item.medicineName)).limit(1);
+
+    if (existing.length) {
+      await db.update(medicines)
+        .set({
+          stock: existing[0].stock + parseInt(item.qty),
+          batch: item.batch || existing[0].batch,
+          expiry: item.expiry || existing[0].expiry,
+          purchasePrice: parseFloat(item.purchasePrice) || existing[0].purchasePrice,
+          mrp: parseFloat(item.mrp) || existing[0].mrp,
+        })
+        .where(eq(medicines.id, existing[0].id));
+    } else {
+      await db.insert(medicines).values({
+        name: item.medicineName,
+        batch: item.batch || null,
+        expiry: item.expiry || null,
+        mrp: parseFloat(item.mrp) || 0,
+        purchasePrice: parseFloat(item.purchasePrice) || 0,
+        stock: parseInt(item.qty) || 0,
+        gst: parseFloat(item.gst) || 12,
+      });
+    }
+  }
+
+  return NextResponse.json({ success: true });
+}
+===== D:\medical-saas\app\api\sales\[id]\route.js =====
+import { db } from "@/lib/db";
+import { sales, saleItems } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+
+export async function GET(request, { params }) {
+  const { id } = await params;
+  const sale = await db
+    .select()
+    .from(sales)
+    .where(eq(sales.id, Number(id)))
+    .get();
+  if (!sale) return Response.json({ error: "Not found" }, { status: 404 });
+
+  const items = await db
+    .select()
+    .from(saleItems)
+    .where(eq(saleItems.saleId, Number(id)))
+    .all();
+
+  return Response.json({ ...sale, items });
+}
+===== D:\medical-saas\app\api\sales\route.js =====
+import { db } from "@/lib/db";
+import { sales, saleItems, medicines } from "@/lib/schema";
+import { eq, sql } from "drizzle-orm";
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  const all = await db.select().from(sales);
+  return NextResponse.json(all);
+}
+
+export async function POST(req) {
+  const body = await req.json();
+  const billNo = "BILL-" + Date.now();
+
+  const inserted = await db.insert(sales).values({
+    billNo,
+    patientName: body.patient.name,
+    patientPhone: body.patient.phone || null,
+    subtotal: body.subtotal,
+    discount: body.discount,
+    gstAmount: 0,
+    netAmount: body.netAmount,
+    paymentType: body.paymentType,
+    paidAmount: body.paymentType === "Credit" ? 0 : body.netAmount,
+  }).returning({ id: sales.id });
+
+  const billId = inserted[0].id;
+
+  for (const item of body.items) {
+    await db.insert(saleItems).values({
+      saleId: billId,
+      medicineId: item.medicineId,
+      medicineName: item.medicineName,
+      batch: item.batch,
+      expiry: item.expiry,
+      qty: item.qty,
+      mrp: item.mrp,
+      discount: item.discount || 0,
+      gst: item.gst || 0,
+      amount: item.amount,
+    });
+
+    // reduce stock
+    await db.update(medicines)
+      .set({ stock: sql`stock - ${item.qty}` })
+      .where(eq(medicines.id, item.medicineId));
+  }
+
+  return NextResponse.json({ success: true, billId });
+}
+===== D:\medical-saas\app\api\seed\route.js =====
+import { db } from "@/lib/db";
+import { users } from "@/lib/schema";
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  try {
+    await db.insert(users).values({
+      name: "Admin",
+      phone: "9996865069",
+      password: "Maqbool2@",
+      role: "admin",
+    });
+    return NextResponse.json({ success: true, message: "User created" });
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e.message });
+  }
+}
+
+
+===== D:\medical-saas\app\api\setup\route.js =====
+import { db } from "@/lib/db";
+import { sql } from "drizzle-orm";
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  try {
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS prescriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id INTEGER NOT NULL,
+        diagnosis TEXT,
+        notes TEXT,
+        medicines TEXT NOT NULL,
+        tests TEXT,
+        sent_to_pharmacy INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS lab_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id INTEGER NOT NULL,
+        prescription_id INTEGER,
+        category TEXT NOT NULL,
+        test_name TEXT NOT NULL,
+        result TEXT,
+        report_date TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    await db.run(sql`ALTER TABLE patients ADD COLUMN complaint TEXT`).catch(() => null);
+    await db.run(sql`ALTER TABLE prescriptions ADD COLUMN tests TEXT`).catch(() => null);
+    return NextResponse.json({ success: true, message: "Tables ready" });
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e.message });
+  }
+}
+===== D:\medical-saas\app\api\suppliers\route.js =====
+import { db } from "@/lib/db";
+import { suppliers } from "@/lib/schema";
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  const all = await db.select().from(suppliers);
+  return NextResponse.json(all);
+}
+
+export async function POST(req) {
+  const body = await req.json();
+  await db.insert(suppliers).values({
+    name: body.name,
+    phone: body.phone || null,
+    address: body.address || null,
+    gstNo: body.gstNo || null,
+  });
+  return NextResponse.json({ success: true });
+}
+
+
+===== D:\medical-saas\app\counter\page.js =====
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+
+export default function Counter() {
+  const [form, setForm] = useState({ name: "", phone: "", age: "", gender: "", address: "", complaint: "" });
+  const [saved, setSaved] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  function handle(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
+    const res = await fetch("/api/patients", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json();
+    setSaved({ ...form, id: data.id });
+    setForm({ name: "", phone: "", age: "", gender: "", address: "", complaint: "" });
+    setLoading(false);
+  }
+
+  const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500";
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="text-blue-300 hover:text-white text-sm">← Dashboard</Link>
+          <h1 className="text-lg font-bold">🪟 Counter — Patient Registration</h1>
+        </div>
+      </header>
+
+      <div className="max-w-xl mx-auto px-4 py-6 space-y-4">
+        {saved && (
+          <div className="bg-green-50 border border-green-300 rounded-xl p-4 text-green-800 text-sm font-medium">
+            ✅ {saved.name} registered — Token #{saved.id} — Send to Doctor
+          </div>
+        )}
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {[
+              { name: "name",      label: "Patient Name *", type: "text",   required: true },
+              { name: "phone",     label: "Phone",          type: "text" },
+              { name: "age",       label: "Age",            type: "number" },
+              { name: "address",   label: "Address",        type: "text" },
+              { name: "complaint", label: "Chief Complaint *", type: "text", required: true },
+            ].map((f) => (
+              <div key={f.name}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                <input type={f.type} name={f.name} value={form[f.name]} onChange={handle}
+                  required={f.required}
+                  className={inputClass} />
+              </div>
+            ))}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+              <select name="gender" value={form.gender} onChange={handle}
+                className={inputClass}>
+                <option value="">Select</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <button type="submit" disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50">
+              {loading ? "Saving..." : "✅ Register & Send to Doctor"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+===== D:\medical-saas\app\credit\page.js =====
+import { db } from "@/lib/db";
+import { sales, payments } from "@/lib/schema";
+import Link from "next/link";
+
+export default async function Credit() {
+  const allSales = await db.select().from(sales);
+  const allPayments = await db.select().from(payments);
+
+  const CreditSales = allSales.filter((s) => s.paymentType === "Credit");
+
+  const patientMap = {};
+  for (const sale of CreditSales) {
+    const key = sale.patientPhone || sale.patientName;
+    if (!patientMap[key]) {
+      patientMap[key] = { name: sale.patientName, phone: sale.patientPhone, total: 0, paid: 0, bills: [] };
+    }
+    patientMap[key].total += sale.netAmount;
+    patientMap[key].bills.push(sale);
+  }
+
+  for (const p of allPayments) {
+    const sale = CreditSales.find((s) => s.id === p.saleId);
+    if (sale) {
+      const key = sale.patientPhone || sale.patientName;
+      if (patientMap[key]) patientMap[key].paid += p.amount;
+    }
+  }
+
+  const patients = Object.values(patientMap).map((p) => ({
+    ...p,
+    pending: Math.max(0, p.total - p.paid),
+  })).filter((p) => p.pending > 0).sort((a, b) => b.pending - a.pending);
+
+  const totalPending = patients.reduce((s, p) => s + p.pending, 0);
+
+  // A/R Aging
+  const now = new Date();
+  const aging = { d30: 0, d60: 0, d60plus: 0 };
+  for (const sale of CreditSales) {
+    const diff = (now - new Date(sale.createdAt)) / (1000 * 60 * 60 * 24);
+    if (diff <= 30) aging.d30 += sale.netAmount;
+    else if (diff <= 60) aging.d60 += sale.netAmount;
+    else aging.d60plus += sale.netAmount;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <Link href="/dashboard" className="text-blue-300 hover:text-white text-sm">← Dashboard</Link>
+        <h1 className="text-lg font-bold">📒 Credit Management</h1>
+      </header>
+
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+        {/* Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl shadow p-4 border-l-4 border-red-500">
+            <p className="text-xs text-gray-500 uppercase font-semibold">Total Pending</p>
+            <p className="text-2xl font-bold text-red-600 mt-1">₹{totalPending.toFixed(0)}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow p-4 border-l-4 border-green-400">
+            <p className="text-xs text-gray-500 uppercase font-semibold">0–30 Days</p>
+            <p className="text-2xl font-bold text-green-600 mt-1">₹{aging.d30.toFixed(0)}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow p-4 border-l-4 border-yellow-400">
+            <p className="text-xs text-gray-500 uppercase font-semibold">31–60 Days</p>
+            <p className="text-2xl font-bold text-yellow-600 mt-1">₹{aging.d60.toFixed(0)}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow p-4 border-l-4 border-red-700">
+            <p className="text-xs text-gray-500 uppercase font-semibold">60+ Days</p>
+            <p className="text-2xl font-bold text-red-800 mt-1">₹{aging.d60plus.toFixed(0)}</p>
+          </div>
+        </div>
+
+        {/* Patient List */}
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <div className="px-4 py-3 border-b font-semibold text-gray-700">Pending Credit by Patient</div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                {["Patient", "Phone", "Total Credit", "Paid", "Pending", "Action"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {patients.length === 0 && (
+                <tr><td colSpan={6} className="text-center py-8 text-gray-400">No pending Credit</td></tr>
+              )}
+              {patients.map((p, i) => (
+                <tr key={i} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
+                  <td className="px-4 py-3 text-gray-500">{p.phone || "—"}</td>
+                  <td className="px-4 py-3 text-gray-700">₹{p.total.toFixed(0)}</td>
+                  <td className="px-4 py-3 text-green-600">₹{p.paid.toFixed(0)}</td>
+                  <td className="px-4 py-3 font-bold text-red-600">₹{p.pending.toFixed(0)}</td>
+                  <td className="px-4 py-3">
+                    <a href={`https://wa.me/91${p.phone}?text=Dear ${p.name}, your pending amount is ₹${p.pending.toFixed(0)}. Please clear at earliest.`}
+                      target="_blank"
+                      className="bg-green-500 hover:bg-green-400 text-white px-3 py-1 rounded-lg text-xs font-semibold transition">
+                      💬 WhatsApp
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+
+===== D:\medical-saas\app\dashboard\page.js =====
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { sales, medicines, payments } from "@/lib/schema";
+
+export default async function Dashboard() {
+  const allSales = await db.select().from(sales);
+  const allMedicines = await db.select().from(medicines);
+  const allPayments = await db.select().from(payments);
+
+  const today = new Date().toDateString();
+  const todaySales = allSales.filter(
+    (s) => new Date(s.createdAt).toDateString() === today,
+  );
+  const todayRevenue = todaySales.reduce((sum, s) => sum + s.netAmount, 0);
+  const totalRevenue = allSales.reduce((sum, s) => sum + s.netAmount, 0);
+
+  const totalUdhar = allSales
+    .filter((s) => s.paymentType === "Credit")
+    .reduce((sum, s) => sum + s.netAmount, 0);
+  const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
+  const totalPending = Math.max(0, totalUdhar - totalPaid);
+
+  const lowStockCount = allMedicines.filter((m) => m.stock <= 10).length;
+
+  const expiredCount = allMedicines.filter((m) => {
+    if (!m.expiry) return false;
+    const parts = m.expiry.split("/");
+    if (parts.length < 2) return false;
+    return new Date(`${parts[1]}-${parts[0]}-01`) < new Date();
+  }).length;
+
+  const nearExpiry = allMedicines.filter((m) => {
+    if (!m.expiry) return false;
+    const parts = m.expiry.split("/");
+    if (parts.length < 2) return false;
+    const exp = new Date(`${parts[1]}-${parts[0]}-01`);
+    const diff = (exp - new Date()) / (1000 * 60 * 60 * 24);
+    return diff > 0 && diff <= 30;
+  }).length;
+
+  const navLinks = [
+    {
+      href: "/sales",
+      icon: "📋",
+      label: "All Bills",
+      color: "bg-indigo-500 hover:bg-indigo-600",
+    },
+    {
+      href: "/patients",
+      icon: "👤",
+      label: "Patients",
+      color: "bg-cyan-600 hover:bg-cyan-700",
+    },
+    {
+      href: "/medicines",
+      icon: "💊",
+      label: "Medicines",
+      color: "bg-emerald-600 hover:bg-emerald-700",
+    },
+    {
+      href: "/suppliers",
+      icon: "🏭",
+      label: "Suppliers",
+      color: "bg-violet-600 hover:bg-violet-700",
+    },
+    {
+      href: "/purchases/new",
+      icon: "📦",
+      label: "New Purchase",
+      color: "bg-amber-500 hover:bg-amber-600",
+    },
+    {
+      href: "/purchases",
+      icon: "📜",
+      label: "Purchase History",
+      color: "bg-orange-500 hover:bg-orange-600",
+    },
+    {
+      href: "/report",
+      icon: "📊",
+      label: "Sales Report",
+      color: "bg-teal-600 hover:bg-teal-700",
+    },
+    {
+      href: "/profit",
+      icon: "💰",
+      label: "Profit / Loss",
+      color: "bg-green-600 hover:bg-green-700",
+    },
+    {
+      href: "/credit",
+      icon: "🔒",
+      label: "Credit",
+      color: "bg-red-500 hover:bg-red-600",
+    },
+    {
+      href: "/counter",
+      icon: "🪟",
+      label: "Counter",
+      color: "bg-blue-500 hover:bg-blue-600",
+    },
+    {
+      href: "/doctor",
+      icon: "🩺",
+      label: "Doctor",
+      color: "bg-green-700 hover:bg-green-800",
+    },
+    {
+      href: "/pharmacy",
+      icon: "💊",
+      label: "Pharmacy",
+      color: "bg-purple-600 hover:bg-purple-700",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">💊</span>
+          <div>
+            <h1 className="text-lg font-bold leading-tight">Medical SaaS</h1>
+            <p className="text-blue-300 text-xs">Dashboard</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-blue-200 hidden md:block">
+            {new Date().toLocaleDateString("en-IN", {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
+          <Link
+            href="/api/logout"
+            className="bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+          >
+            🚪 Logout
+          </Link>
+        </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">Dashboard</h2>
+          <p className="text-gray-500 text-sm">Today's overview</p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[
+            {
+              label: "Today's Sales",
+              value: `₹${todayRevenue.toFixed(0)}`,
+              sub: `${todaySales.length} bills`,
+              border: "border-blue-500",
+              text: "text-blue-700",
+            },
+            {
+              label: "Total Revenue",
+              value: `₹${totalRevenue.toFixed(0)}`,
+              sub: `${allSales.length} total bills`,
+              border: "border-green-500",
+              text: "text-green-700",
+            },
+            {
+              label: "Credit Pending",
+              value: `₹${totalPending.toFixed(0)}`,
+              sub: "Outstanding",
+              border: "border-red-500",
+              text: "text-red-600",
+            },
+            {
+              label: "Low Stock",
+              value: lowStockCount,
+              sub: "Items ≤ 10 qty",
+              border: "border-orange-400",
+              text: "text-orange-500",
+            },
+            {
+              label: "Expiring Soon",
+              value: nearExpiry,
+              sub: "Within 30 days",
+              border: "border-rose-500",
+              text: "text-rose-600",
+            },
+          ].map((s, i) => (
+            <div
+              key={i}
+              className={`bg-white rounded-xl shadow p-4 border-l-4 ${s.border}`}
+            >
+              <p className="text-xs text-gray-500 uppercase font-semibold">
+                {s.label}
+              </p>
+              <p className={`text-2xl font-bold mt-1 ${s.text}`}>{s.value}</p>
+              <p className="text-xs text-gray-400 mt-1">{s.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        <Link href="/sales/new">
+          <div className="bg-blue-600 hover:bg-blue-700 transition text-white rounded-xl shadow-lg p-5 flex items-center justify-between cursor-pointer">
+            <div>
+              <p className="text-lg font-bold">🧾 Create New Bill</p>
+              <p className="text-blue-200 text-sm mt-0.5">
+                Fast GST billing for walk-in customers
+              </p>
+            </div>
+            <span className="text-4xl opacity-60">→</span>
+          </div>
+        </Link>
+
+        <div>
+          <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
+            All Modules
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {navLinks.map((link) => (
+              <Link key={link.href} href={link.href}>
+                <div
+                  className={`${link.color} text-white rounded-xl shadow p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition min-h-[100px]`}
+                >
+                  <span className="text-3xl">{link.icon}</span>
+                  <p className="text-sm font-semibold text-center leading-tight">
+                    {link.label}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {(lowStockCount > 0 || expiredCount > 0 || nearExpiry > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {lowStockCount > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <p className="font-semibold text-orange-700">
+                    {lowStockCount} medicines low on stock
+                  </p>
+                  <Link
+                    href="/medicines"
+                    className="text-orange-600 text-sm underline"
+                  >
+                    View & reorder →
+                  </Link>
+                </div>
+              </div>
+            )}
+            {expiredCount > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                <span className="text-2xl">🚨</span>
+                <div>
+                  <p className="font-semibold text-red-700">
+                    {expiredCount} medicines expired
+                  </p>
+                  <Link
+                    href="/medicines"
+                    className="text-red-600 text-sm underline"
+                  >
+                    Review now →
+                  </Link>
+                </div>
+              </div>
+            )}
+            {nearExpiry > 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
+                <span className="text-2xl">⏰</span>
+                <div>
+                  <p className="font-semibold text-yellow-700">
+                    {nearExpiry} expiring within 30 days
+                  </p>
+                  <Link
+                    href="/medicines"
+                    className="text-yellow-600 text-sm underline"
+                  >
+                    Return to supplier →
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+===== D:\medical-saas\app\doctor\[id]\page.js =====
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+const TEST_CATEGORIES = {
+  "🩸 Blood Tests": [
+    "CBC", "Blood Sugar Fasting", "Blood Sugar PP", "HbA1c",
+    "Lipid Profile", "LFT", "KFT", "Thyroid TSH", "Thyroid T3/T4",
+    "Uric Acid", "ESR", "CRP", "Serum Calcium", "Vitamin D", "Vitamin B12",
+    "Iron Studies", "PT/INR", "Dengue NS1", "Malaria", "Typhoid Widal",
+  ],
+  "🧪 Urine / Stool": [
+    "Urine R/M", "Urine Culture", "24hr Urine Protein",
+    "Stool R/M", "Stool Culture",
+  ],
+  "📷 X-Ray": [
+    "X-Ray Chest PA", "X-Ray KUB", "X-Ray Spine LS",
+    "X-Ray Spine CS", "X-Ray Hand", "X-Ray Knee", "X-Ray Pelvis",
+    "X-Ray Shoulder", "X-Ray Ankle", "X-Ray PNS",
+  ],
+  "🔊 Ultrasound": [
+    "USG Abdomen", "USG Pelvis", "USG Abdomen + Pelvis",
+    "USG Thyroid", "USG Obstetric", "USG KUB",
+    "USG Breast", "USG Scrotum",
+  ],
+  "🧲 MRI": [
+    "MRI Brain", "MRI Spine LS", "MRI Spine CS",
+    "MRI Knee", "MRI Shoulder", "MRI Abdomen",
+    "MRI Pelvis", "MRI Wrist",
+  ],
+  "🔬 CT Scan": [
+    "CT Brain", "CT Chest", "CT Abdomen",
+    "CT KUB", "CT Spine LS", "CT PNS",
+    "CT Angiography", "CT Pelvis",
+  ],
+  "❤️ Cardiac": [
+    "ECG", "Echo 2D", "TMT", "Holter 24hr",
+  ],
+  "👁️ Other": [
+    "Biopsy", "Endoscopy", "Colonoscopy",
+    "PFT", "EEG", "EMG/NCV", "Bone Density (DEXA)",
+  ],
+};
+
+export default function DoctorExamine({ params }) {
+  const router = useRouter();
+  const [patient, setPatient] = useState(null);
+  const [diagnosis, setDiagnosis] = useState("");
+  const [notes, setNotes] = useState("");
+  const [search, setSearch] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [allMedicines, setAllMedicines] = useState([]);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Tests
+  const [selectedCategory, setSelectedCategory] = useState(Object.keys(TEST_CATEGORIES)[0]);
+  const [selectedTests, setSelectedTests] = useState([]);
+
+  useEffect(() => {
+    async function load() {
+      const { id } = await params;
+      const [p, m] = await Promise.all([
+        fetch(`/api/patients/${id}`).then((r) => r.json()),
+        fetch("/api/medicines").then((r) => r.json()),
+      ]);
+      setPatient(p);
+      setAllMedicines(m);
+    }
+    load();
+  }, []);
+
+  function handleSearch(val) {
+    setSearch(val);
+    if (val.length < 2) { setSuggestions([]); return; }
+    setSuggestions(
+      allMedicines.filter((m) =>
+        m.name.toLowerCase().includes(val.toLowerCase()) ||
+        (m.generic && m.generic.toLowerCase().includes(val.toLowerCase()))
+      ).slice(0, 6)
+    );
+  }
+
+  function addMedicine(med) {
+    if (items.find((i) => i.medicineId === med.id)) { setSearch(""); setSuggestions([]); return; }
+    setItems([...items, {
+      medicineId: med.id,
+      medicineName: med.name,
+      generic: med.generic || "",
+      dose: "",
+      duration: "",
+      instruction: "After food",
+    }]);
+    setSearch("");
+    setSuggestions([]);
+  }
+
+  function updateItem(idx, field, value) {
+    const updated = [...items];
+    updated[idx][field] = value;
+    setItems(updated);
+  }
+
+  function removeItem(idx) {
+    setItems(items.filter((_, i) => i !== idx));
+  }
+
+  function toggleTest(testName) {
+    setSelectedTests((prev) =>
+      prev.find((t) => t.name === testName)
+        ? prev.filter((t) => t.name !== testName)
+        : [...prev, { name: testName, category: selectedCategory }]
+    );
+  }
+
+  async function handleSubmit() {
+    if (!items.length && !selectedTests.length) return alert("Add at least one medicine or test");
+    if (!diagnosis) return alert("Enter diagnosis");
+    setLoading(true);
+
+    const res = await fetch("/api/prescriptions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patientId: patient.id,
+        diagnosis,
+        notes,
+        medicines: items,
+        tests: selectedTests,
+      }),
+    });
+    const data = await res.json();
+
+    // Save lab reports
+    for (const test of selectedTests) {
+      await fetch("/api/lab-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: patient.id,
+          prescriptionId: data.id,
+          category: test.category,
+          testName: test.name,
+        }),
+      });
+    }
+
+    setLoading(false);
+    router.push("/doctor");
+  }
+
+  if (!patient) return <div className="p-8 text-center text-gray-400">Loading...</div>;
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-green-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <Link href="/doctor" className="text-green-300 hover:text-white text-sm">← Queue</Link>
+        <h1 className="text-lg font-bold">🩺 {patient.name} — Token #{patient.id}</h1>
+      </header>
+
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+
+        {/* Patient Info */}
+        <div className="bg-white rounded-xl shadow p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <div><span className="text-gray-500">Age:</span> <span className="font-medium">{patient.age || "—"}</span></div>
+          <div><span className="text-gray-500">Gender:</span> <span className="font-medium capitalize">{patient.gender || "—"}</span></div>
+          <div><span className="text-gray-500">Phone:</span> <span className="font-medium">{patient.phone || "—"}</span></div>
+          <div><span className="text-gray-500">Complaint:</span> <span className="font-medium text-red-600">{patient.complaint || "—"}</span></div>
+        </div>
+
+        {/* Diagnosis */}
+        <div className="bg-white rounded-xl shadow p-4 space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Diagnosis *</label>
+            <input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="e.g. Viral fever, UTI, Hypertension..." />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes / Advice</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Rest, diet, follow-up..." />
+          </div>
+        </div>
+
+        {/* Medicine Search */}
+        <div className="bg-white rounded-xl shadow p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Search Medicine</label>
+          <div className="relative">
+            <input value={search} onChange={(e) => handleSearch(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Medicine name or generic..." />
+            {suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 mt-1">
+                {suggestions.map((m) => (
+                  <div key={m.id} onClick={() => addMedicine(m)}
+                    className="px-4 py-2.5 hover:bg-green-50 cursor-pointer text-sm border-b last:border-0">
+                    <span className="font-medium text-gray-800">{m.name}</span>
+                    <span className="text-gray-400 ml-2 text-xs">{m.generic}</span>
+                    <span className="float-right text-xs text-gray-400">Stock: {m.stock}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Medicines Table */}
+        {items.length > 0 && (
+          <div className="bg-white rounded-xl shadow overflow-x-auto">
+            <div className="px-4 py-3 border-b font-semibold text-gray-700 text-sm">💊 Medicines</div>
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  {["Medicine", "Dose", "Duration", "Instruction", ""].map((h) => (
+                    <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, idx) => (
+                  <tr key={idx} className="border-b">
+                    <td className="px-3 py-2">
+                      <p className="font-medium text-gray-800">{item.medicineName}</p>
+                      <p className="text-xs text-gray-400">{item.generic}</p>
+                    </td>
+                    <td className="px-3 py-2">
+                      <input value={item.dose} onChange={(e) => updateItem(idx, "dose", e.target.value)}
+                        className="w-24 border border-gray-300 rounded px-2 py-1 text-sm" placeholder="1-0-1" />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input value={item.duration} onChange={(e) => updateItem(idx, "duration", e.target.value)}
+                        className="w-24 border border-gray-300 rounded px-2 py-1 text-sm" placeholder="5 days" />
+                    </td>
+                    <td className="px-3 py-2">
+                      <select value={item.instruction} onChange={(e) => updateItem(idx, "instruction", e.target.value)}
+                        className="border border-gray-300 rounded px-2 py-1 text-sm">
+                        <option>After food</option>
+                        <option>Before food</option>
+                        <option>Empty stomach</option>
+                        <option>At bedtime</option>
+                        <option>SOS</option>
+                      </select>
+                    </td>
+                    <td className="px-3 py-2">
+                      <button onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600 text-lg">×</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Tests Section */}
+        <div className="bg-white rounded-xl shadow p-4">
+          <p className="font-semibold text-gray-700 text-sm mb-3">🧪 Investigations / Tests</p>
+
+          {/* Category Tabs */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {Object.keys(TEST_CATEGORIES).map((cat) => (
+              <button key={cat} onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                  selectedCategory === cat
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}>
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Tests Grid */}
+          <div className="flex flex-wrap gap-2">
+            {TEST_CATEGORIES[selectedCategory].map((test) => {
+              const isSelected = selectedTests.find((t) => t.name === test);
+              return (
+                <button key={test} onClick={() => toggleTest(test)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${
+                    isSelected
+                      ? "bg-green-100 border-green-500 text-green-700"
+                      : "bg-white border-gray-300 text-gray-600 hover:border-green-400"
+                  }`}>
+                  {isSelected ? "✓ " : ""}{test}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected Tests */}
+          {selectedTests.length > 0 && (
+            <div className="mt-3 pt-3 border-t">
+              <p className="text-xs text-gray-500 mb-2 font-semibold">Selected Tests:</p>
+              <div className="flex flex-wrap gap-2">
+                {selectedTests.map((t) => (
+                  <span key={t.name}
+                    className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                    {t.name}
+                    <button onClick={() => toggleTest(t.name)} className="text-green-600 hover:text-red-500 font-bold">×</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button onClick={handleSubmit} disabled={loading}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition text-lg disabled:opacity-50">
+          {loading ? "Sending..." : "✅ Send to Pharmacy"}
+        </button>
+
+      </div>
+    </div>
+  );
+}
+===== D:\medical-saas\app\doctor\page.js =====
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { patients } from "@/lib/schema";
+import { desc } from "drizzle-orm";
+
+export const dynamic = "force-dynamic";
+
+export default async function DoctorQueue() {
+  const queue = await db.select().from(patients).orderBy(desc(patients.createdAt)).limit(20);
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-green-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <h1 className="text-lg font-bold">🩺 Doctor — Patient Queue</h1>
+        <Link href="/dashboard" className="text-green-300 hover:text-white text-sm">← Dashboard</Link>
+      </header>
+
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <div className="px-4 py-3 border-b font-semibold text-gray-700">Today's Queue</div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                {["Token", "Name", "Age", "Complaint", "Action"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {queue.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-8 text-gray-400">No patients yet</td></tr>
+              )}
+              {queue.map((p) => (
+                <tr key={p.id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-bold text-blue-700">#{p.id}</td>
+                  <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
+                  <td className="px-4 py-3 text-gray-500">{p.age || "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">{p.complaint || "—"}</td>
+                  <td className="px-4 py-3">
+                    <Link href={`/doctor/${p.id}`}
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                      Examine →
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+===== D:\medical-saas\app\login\page.js =====
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+export default function Login() {
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      router.push("/dashboard");
+    } else {
+      setError(data.message || "Wrong password");
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-blue-900 to-green-800 flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
+        <div className="text-center mb-8">
+          <span className="text-5xl">💊</span>
+          <h1 className="text-2xl font-bold text-blue-900 mt-2">
+            Medical SaaS
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">Sign in to your store</p>
+        </div>
+        <form onSubmit={handleSubmit} autoComplete="on" className="space-y-4">
+          <input type="text" name="username" autoComplete="username"
+            value="admin" readOnly className="hidden" />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                type={show ? "text" : "password"}
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 pr-12 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShow(!show)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 text-lg"
+              >
+                {show ? "🙈" : "👁️"}
+              </button>
+            </div>
+          </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition"
+          >
+            Login →
+          </button>
+        </form>
+      </div>
+    </main>
+  );
+}
+===== D:\medical-saas\app\medicines\new\page.js =====
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+export default function NewMedicine() {
+  const router = useRouter();
+  const [form, setForm] = useState({
+    name: "", generic: "", company: "", batch: "", expiry: "",
+    mrp: "", purchasePrice: "", stock: "", unit: "strip",
+    rack: "", hsn: "", gst: "12",
+  });
+
+  function handle(e) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    await fetch("/api/medicines", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    router.push("/medicines");
+  }
+
+  const fields = [
+    { name: "name",          label: "Medicine Name *",   type: "text",   required: true },
+    { name: "generic",       label: "Generic Name",      type: "text" },
+    { name: "company",       label: "Company",           type: "text" },
+    { name: "batch",         label: "Batch No",          type: "text" },
+    { name: "expiry",        label: "Expiry (MM/YYYY)",  type: "text",   placeholder: "03/2026" },
+    { name: "mrp",           label: "MRP (₹) *",         type: "number", required: true },
+    { name: "purchasePrice", label: "Purchase Price (₹)", type: "number" },
+    { name: "stock",         label: "Opening Stock *",   type: "number", required: true },
+    { name: "rack",          label: "Rack Location",     type: "text" },
+    { name: "hsn",           label: "HSN Code",          type: "text" },
+    { name: "gst",           label: "GST %",             type: "number" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <a href="/medicines" className="text-blue-300 hover:text-white text-sm">← Back</a>
+        <h1 className="text-lg font-bold">💊 Add New Medicine</h1>
+      </header>
+
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-xl shadow p-6">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {fields.map((f) => (
+              <div key={f.name}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                <input
+                  type={f.type}
+                  name={f.name}
+                  value={form[f.name]}
+                  onChange={handle}
+                  required={f.required}
+                  placeholder={f.placeholder || ""}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            ))}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+              <select name="unit" value={form.unit} onChange={handle}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {["strip", "bottle", "tube", "vial", "sachet", "tablet", "capsule", "injection", "syrup", "other"].map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <button type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+                Save Medicine
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+===== D:\medical-saas\app\medicines\[id]\edit\page.js =====
+
+===== D:\medical-saas\app\medicines\page.js =====
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { medicines } from "@/lib/schema";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+export default async function Medicines() {
+  const cookieStore = await cookies();
+  if (!cookieStore.get("auth")) redirect("/login");
+
+  const allMedicines = await db.select().from(medicines);
+
+  function getStatus(m) {
+    if (!m.expiry) return { label: "OK", color: "bg-green-100 text-green-700" };
+    const parts = m.expiry.split("/");
+    if (parts.length < 2)
+      return { label: "OK", color: "bg-green-100 text-green-700" };
+    const exp = new Date(`${parts[1]}-${parts[0]}-01`);
+    const now = new Date();
+    const diff = (exp - now) / (1000 * 60 * 60 * 24);
+    if (diff < 0) return { label: "Expired", color: "bg-red-100 text-red-700" };
+    if (diff <= 30)
+      return { label: "Near Expiry", color: "bg-yellow-100 text-yellow-700" };
+    if (m.stock <= 10)
+      return { label: "Low Stock", color: "bg-orange-100 text-orange-700" };
+    return { label: "OK", color: "bg-green-100 text-green-700" };
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="text-blue-300 hover:text-white text-sm"
+          >
+            ← Dashboard
+          </Link>
+          <h1 className="text-lg font-bold">💊 Medicines</h1>
+        </div>
+        <Link
+          href="/medicines/new"
+          className="bg-green-500 hover:bg-green-400 px-4 py-2 rounded-lg text-sm font-semibold transition"
+        >
+          + Add Medicine
+        </Link>
+      </header>
+
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-blue-900 text-white">
+              <tr>
+                {[
+                  "Name",
+                  "Generic",
+                  "Company",
+                  "Batch",
+                  "Expiry",
+                  "MRP",
+                  "Stock",
+                  "Status",
+                  "Action",
+                ].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-semibold">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {allMedicines.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="text-center py-8 text-gray-400">
+                    No medicines added yet
+                  </td>
+                </tr>
+              )}
+              {allMedicines.map((m) => {
+                const status = getStatus(m);
+                return (
+                  <tr key={m.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-800">
+                      {m.name}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {m.generic || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {m.company || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {m.batch || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {m.expiry || "—"}
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-gray-800">
+                      ₹{m.mrp}
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-gray-800">
+                      {m.stock}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-semibold ${status.color}`}
+                      >
+                        {status.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/medicines/${m.id}/edit`}
+                        className="text-blue-600 hover:underline text-xs"
+                      >
+                        Edit
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+===== D:\medical-saas\app\patients\new\page.js =====
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+export default function NewPatient() {
+  const router = useRouter();
+  const [form, setForm] = useState({ name: "", phone: "", address: "", age: "", gender: "" });
+
+  function handle(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    await fetch("/api/patients", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    router.push("/patients");
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <Link href="/patients" className="text-blue-300 hover:text-white text-sm">← Back</Link>
+        <h1 className="text-lg font-bold">👤 Add Patient</h1>
+      </header>
+      <div className="max-w-xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-xl shadow p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {[
+              { name: "name",    label: "Full Name *",  type: "text",   required: true },
+              { name: "phone",   label: "Phone",        type: "text" },
+              { name: "age",     label: "Age",          type: "number" },
+              { name: "address", label: "Address",      type: "text" },
+            ].map((f) => (
+              <div key={f.name}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                <input type={f.type} name={f.name} value={form[f.name]} onChange={handle}
+                  required={f.required}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            ))}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+              <select name="gender" value={form.gender} onChange={handle}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <button type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+              Save Patient
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+===== D:\medical-saas\app\patients\[id]\page.js =====
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { patients, prescriptions, sales, saleItems, labReports } from "@/lib/schema";
+import { eq, desc } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+
+export const dynamic = "force-dynamic";
+
+export default async function PatientHistory({ params }) {
+  const cookieStore = await cookies();
+  if (!cookieStore.get("auth")) redirect("/login");
+
+  const { id } = await params;
+  const pid = parseInt(id);
+
+  const [patientArr, allPrescriptions, allSales, allLabReports] = await Promise.all([
+    db.select().from(patients).where(eq(patients.id, pid)).limit(1),
+    db.select().from(prescriptions).where(eq(prescriptions.patientId, pid)).orderBy(desc(prescriptions.createdAt)),
+    db.select().from(sales).where(eq(sales.patientId, pid)).orderBy(desc(sales.createdAt)),
+    db.select().from(labReports).where(eq(labReports.patientId, pid)).orderBy(desc(labReports.createdAt)),
+  ]);
+
+  const patient = patientArr[0];
+  if (!patient) redirect("/patients");
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <Link href="/patients" className="text-blue-300 hover:text-white text-sm">← Patients</Link>
+        <h1 className="text-lg font-bold">👤 {patient.name} — Token #{patient.id}</h1>
+      </header>
+
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+
+        {/* Basic Info */}
+        <div className="bg-white rounded-xl shadow p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <div><span className="text-gray-500">Age:</span> <span className="font-medium">{patient.age || "—"}</span></div>
+          <div><span className="text-gray-500">Gender:</span> <span className="font-medium capitalize">{patient.gender || "—"}</span></div>
+          <div><span className="text-gray-500">Phone:</span> <span className="font-medium">{patient.phone || "—"}</span></div>
+          <div><span className="text-gray-500">Address:</span> <span className="font-medium">{patient.address || "—"}</span></div>
+        </div>
+
+        {/* Prescriptions */}
+        <div className="bg-white rounded-xl shadow">
+          <div className="px-4 py-3 border-b font-semibold text-gray-700">🩺 Prescriptions & Tests</div>
+          {allPrescriptions.length === 0 ? (
+            <p className="text-center py-6 text-gray-400 text-sm">No prescriptions yet</p>
+          ) : (
+            <div className="divide-y">
+              {allPrescriptions.map((rx) => {
+                const meds = JSON.parse(rx.medicines || "[]");
+                const tests = JSON.parse(rx.tests || "[]");
+                const rxReports = allLabReports.filter((r) => r.prescriptionId === rx.id);
+                return (
+                  <div key={rx.id} className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-gray-800">{rx.diagnosis || "—"}</p>
+                      <span className="text-xs text-gray-400">{new Date(rx.createdAt).toLocaleDateString("en-IN")}</span>
+                    </div>
+                    {rx.notes && <p className="text-xs text-gray-500 italic">{rx.notes}</p>}
+
+                    {meds.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Medicines</p>
+                        <div className="flex flex-wrap gap-2">
+                          {meds.map((m, i) => (
+                            <span key={i} className="bg-blue-50 text-blue-800 px-2 py-1 rounded-lg text-xs">
+                              {m.medicineName} {m.dose && `— ${m.dose}`} {m.duration && `× ${m.duration}`}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {tests.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Tests Ordered</p>
+                        <div className="flex flex-wrap gap-2">
+                          {tests.map((t, i) => {
+                            const report = rxReports.find((r) => r.testName === t.name);
+                            return (
+                              <span key={i} className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                                report?.result
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}>
+                                {t.name}
+                                {report?.result && `: ${report.result}`}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Lab Reports with results */}
+        {allLabReports.length > 0 && (
+          <div className="bg-white rounded-xl shadow">
+            <div className="px-4 py-3 border-b font-semibold text-gray-700">🧪 Lab Reports</div>
+            <div className="divide-y">
+              {allLabReports.map((r) => (
+                <div key={r.id} className="px-4 py-3 flex items-center justify-between text-sm">
+                  <div>
+                    <p className="font-medium text-gray-800">{r.testName}</p>
+                    <p className="text-xs text-gray-400">{r.category} · {r.reportDate || new Date(r.createdAt).toLocaleDateString("en-IN")}</p>
+                  </div>
+                  <div className="text-right">
+                    {r.result
+                      ? <span className="bg-green-100 text-green-800 px-2 py-1 rounded-lg text-xs font-medium">{r.result}</span>
+                      : <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-lg text-xs">Pending</span>
+                    }
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Bills */}
+        <div className="bg-white rounded-xl shadow">
+          <div className="px-4 py-3 border-b font-semibold text-gray-700">🧾 Bills</div>
+          {allSales.length === 0 ? (
+            <p className="text-center py-6 text-gray-400 text-sm">No bills yet</p>
+          ) : (
+            <div className="divide-y">
+              {allSales.map((s) => (
+                <div key={s.id} className="px-4 py-3 flex items-center justify-between text-sm">
+                  <div>
+                    <p className="font-medium text-gray-800">{s.billNo}</p>
+                    <p className="text-xs text-gray-400">{new Date(s.createdAt).toLocaleDateString("en-IN")}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${
+                      s.paymentType === "Credit" ? "bg-red-100 text-red-700" :
+                      s.paymentType === "upi" ? "bg-blue-100 text-blue-700" :
+                      "bg-green-100 text-green-700"
+                    }`}>{s.paymentType}</span>
+                    <span className="font-bold text-gray-800">₹{s.netAmount.toFixed(0)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}
+===== D:\medical-saas\app\patients\page.js =====
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { patients } from "@/lib/schema";
+import { desc } from "drizzle-orm";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+
+export default async function Patients() {
+  const cookieStore = await cookies();
+  if (!cookieStore.get("auth")) redirect("/login");
+
+  const all = await db.select().from(patients).orderBy(desc(patients.createdAt));
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="text-blue-300 hover:text-white text-sm">← Dashboard</Link>
+          <h1 className="text-lg font-bold">👤 Patients</h1>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-blue-900 text-white">
+              <tr>
+                {["Token", "Name", "Age", "Phone", "Complaint", "Date", "History"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {all.length === 0 && (
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">No patients yet</td></tr>
+              )}
+              {all.map((p) => (
+                <tr key={p.id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-bold text-blue-700">#{p.id}</td>
+                  <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
+                  <td className="px-4 py-3 text-gray-500">{p.age || "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">{p.phone || "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">{p.complaint || "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">{new Date(p.createdAt).toLocaleDateString("en-IN")}</td>
+                  <td className="px-4 py-3">
+                    <Link href={`/patients/${p.id}`}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                      View →
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+===== D:\medical-saas\app\pharmacy\[id]\page.js =====
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+export default function PharmacyBill({ params }) {
+  const router = useRouter();
+  const [rx, setRx] = useState(null);
+  const [patient, setPatient] = useState(null);
+  const [items, setItems] = useState([]);
+  const [paymentType, setPaymentType] = useState("cash");
+  const [discount, setDiscount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      const { id } = await params;
+      const rx = await fetch(`/api/prescriptions/${id}`).then((r) => r.json());
+      const patient = await fetch(`/api/patients/${rx.patientId}`).then((r) => r.json());
+      const medicines = JSON.parse(rx.medicines);
+
+      const enriched = await Promise.all(
+        medicines.map(async (m) => {
+          const med = await fetch(`/api/medicines/${m.medicineId}`).then((r) => r.json());
+          return {
+            ...m,
+            mrp: med?.mrp || 0,
+            batch: med?.batch || "",
+            expiry: med?.expiry || "",
+            qty: 1,
+            amount: med?.mrp || 0,
+          };
+        })
+      );
+
+      setRx(rx);
+      setPatient(patient);
+      setItems(enriched);
+    }
+    load();
+  }, []);
+
+  function updateQty(idx, qty) {
+    const updated = [...items];
+    updated[idx].qty = parseInt(qty) || 1;
+    updated[idx].amount = updated[idx].qty * updated[idx].mrp;
+    setItems(updated);
+  }
+
+  function removeItem(idx) {
+    setItems(items.filter((_, i) => i !== idx));
+  }
+
+  const subtotal = items.reduce((s, i) => s + i.amount, 0);
+  const netAmount = Math.max(0, subtotal - parseFloat(discount || 0));
+
+  async function handleSubmit() {
+    if (!items.length) return alert("Add at least one medicine");
+    setLoading(true);
+    const res = await fetch("/api/sales", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patient: { name: patient.name, phone: patient.phone || "" },
+        items,
+        subtotal,
+        discount: parseFloat(discount || 0),
+        netAmount,
+        paymentType,
+      }),
+    });
+    const data = await res.json();
+    setLoading(false);
+    if (data.success) router.push(`/sales/${data.billId}`);
+  }
+
+  if (!rx || !patient) return <div className="p-8 text-center text-gray-400">Loading...</div>;
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-purple-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <Link href="/pharmacy" className="text-purple-300 hover:text-white text-sm">← Pharmacy</Link>
+        <h1 className="text-lg font-bold">💊 Bill — {patient.name}</h1>
+      </header>
+
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+
+        <div className="bg-white rounded-xl shadow p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <div><span className="text-gray-500">Name:</span> <span className="font-medium">{patient.name}</span></div>
+          <div><span className="text-gray-500">Phone:</span> <span className="font-medium">{patient.phone || "—"}</span></div>
+          <div><span className="text-gray-500">Age:</span> <span className="font-medium">{patient.age || "—"}</span></div>
+          <div><span className="text-gray-500">Diagnosis:</span> <span className="font-medium text-red-600">{rx.diagnosis || "—"}</span></div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <div className="px-4 py-3 border-b font-semibold text-gray-700">Medicines</div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                {["Medicine", "Dose", "Qty", "MRP", "Amount", ""].map((h) => (
+                  <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, idx) => (
+                <tr key={idx} className="border-b">
+                  <td className="px-3 py-2">
+                    <p className="font-medium text-gray-800">{item.medicineName}</p>
+                    <p className="text-xs text-gray-400">{item.instruction}</p>
+                  </td>
+                  <td className="px-3 py-2 text-gray-500">{item.dose || "—"}</td>
+                  <td className="px-3 py-2">
+                    <input type="number" value={item.qty} min="1"
+                      onChange={(e) => updateQty(idx, e.target.value)}
+                      className="w-16 border border-gray-300 rounded px-2 py-1 text-sm text-center" />
+                  </td>
+                  <td className="px-3 py-2 text-gray-700">₹{item.mrp}</td>
+                  <td className="px-3 py-2 font-semibold text-gray-800">₹{item.amount.toFixed(2)}</td>
+                  <td className="px-3 py-2">
+                    <button onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600 text-lg">×</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-4 space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Subtotal</span>
+            <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">Discount (₹)</span>
+            <input type="number" value={discount} min="0"
+              onChange={(e) => setDiscount(e.target.value)}
+              className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right" />
+          </div>
+          <div className="flex justify-between font-bold text-lg border-t pt-3">
+            <span>Net Amount</span>
+            <span className="text-purple-700">₹{netAmount.toFixed(2)}</span>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Payment Type</label>
+            <div className="flex gap-3">
+              {["cash", "upi", "Credit"].map((t) => (
+                <button key={t} onClick={() => setPaymentType(t)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize transition ${
+                    paymentType === t ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}>
+                  {t === "cash" ? "💵 Cash" : t === "upi" ? "📱 UPI" : "🔒 Credit"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={handleSubmit} disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition text-lg disabled:opacity-50">
+            {loading ? "Saving..." : "✅ Generate Bill"}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+===== D:\medical-saas\app\pharmacy\page.js =====
+import { db } from "@/lib/db";
+import { prescriptions, patients } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+import Link from "next/link";
+
+export const dynamic = "force-dynamic";
+
+export default async function Pharmacy() {
+  const all = await db.select().from(prescriptions).where(eq(prescriptions.sentToPharmacy, 1));
+
+  const queue = await Promise.all(
+    all.map(async (rx) => {
+      const patient = await db.select().from(patients).where(eq(patients.id, rx.patientId)).limit(1);
+      return { ...rx, patient: patient[0] || null };
+    })
+  );
+
+  const sorted = queue.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-purple-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <h1 className="text-lg font-bold">💊 Pharmacy — Prescriptions</h1>
+        <Link href="/dashboard" className="text-purple-300 hover:text-white text-sm">← Dashboard</Link>
+      </header>
+
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+        {sorted.length === 0 && (
+          <div className="bg-white rounded-xl shadow p-8 text-center text-gray-400">
+            No prescriptions yet
+          </div>
+        )}
+        {sorted.map((rx) => (
+          <div key={rx.id} className="bg-white rounded-xl shadow p-5 space-y-3">
+
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <p className="font-bold text-gray-800 text-lg">{rx.patient?.name || "—"}</p>
+                <p className="text-sm text-gray-500">
+                  Token #{rx.patientId} &nbsp;·&nbsp;
+                  {rx.patient?.age ? `${rx.patient.age} yrs` : ""} &nbsp;·&nbsp;
+                  {rx.patient?.phone || ""}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-400">{new Date(rx.createdAt).toLocaleString("en-IN")}</p>
+                <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-1 rounded-full">
+                  Rx #{rx.id}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-sm">
+              <span className="text-gray-500 font-medium">Diagnosis: </span>
+              <span className="text-red-600 font-semibold">{rx.diagnosis || "—"}</span>
+            </div>
+
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  {["Medicine", "Dose", "Duration", "Instruction"].map((h) => (
+                    <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {JSON.parse(rx.medicines).map((m, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="px-3 py-2 font-medium text-gray-800">{m.medicineName}</td>
+                    <td className="px-3 py-2 text-gray-600">{m.dose || "—"}</td>
+                    <td className="px-3 py-2 text-gray-600">{m.duration || "—"}</td>
+                    <td className="px-3 py-2 text-gray-600">{m.instruction || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {rx.notes && (
+              <p className="text-sm text-gray-500 italic border-t pt-2">📝 {rx.notes}</p>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <Link href={`/pharmacy/${rx.id}`}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                💊 Create Bill
+              </Link>
+              <button onClick={() => window.print()}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition">
+                🖨️ Print
+              </button>
+            </div>
+
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+===== D:\medical-saas\app\prescriptions\[id]\page.js =====
+import { db } from "@/lib/db";
+import { prescriptions, patients } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+
+export const dynamic = "force-dynamic";
+
+export default async function PrintPrescription({ params }) {
+  const { id } = await params;
+  const pid = parseInt(id);
+
+  const [rx] = await db.select().from(prescriptions).where(eq(prescriptions.id, pid)).limit(1);
+  if (!rx) redirect("/doctor");
+
+  const [patient] = await db.select().from(patients).where(eq(patients.id, rx.patientId)).limit(1);
+
+  const medicines = JSON.parse(rx.medicines || "[]");
+  const tests = JSON.parse(rx.tests || "[]");
+
+  return (
+    <>
+      {/* Print Button — print में नहीं आएगा */}
+      <div className="no-print bg-gray-100 px-6 py-3 flex items-center gap-4 shadow">
+        <Link href="/doctor" className="text-blue-600 hover:underline text-sm">← Back</Link>
+        <button onClick={() => window.print()}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition">
+          🖨️ Print
+        </button>
+      </div>
+
+      {/* Prescription — यही print होगा */}
+      <div className="print-area max-w-2xl mx-auto bg-white p-8 mt-4 shadow-md rounded-xl">
+
+        {/* Header */}
+        <div className="border-b-2 border-blue-900 pb-4 mb-4 flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-blue-900">Sample Clinic</h1>
+            <p className="text-gray-500 text-sm">123 Main Road, City — 000000</p>
+            <p className="text-gray-500 text-sm">📞 98765-43210</p>
+          </div>
+          <div className="text-right">
+            <p className="text-lg font-bold text-gray-800">Dr. Sample Doctor</p>
+            <p className="text-gray-500 text-sm">MBBS, MD</p>
+            <p className="text-gray-500 text-sm">Reg. No: 12345</p>
+          </div>
+        </div>
+
+        {/* Patient Info */}
+        <div className="grid grid-cols-3 gap-3 text-sm mb-4 bg-gray-50 rounded-lg p-3">
+          <div><span className="text-gray-500">Name:</span> <span className="font-semibold">{patient?.name}</span></div>
+          <div><span className="text-gray-500">Age:</span> <span className="font-semibold">{patient?.age || "—"}</span></div>
+          <div><span className="text-gray-500">Gender:</span> <span className="font-semibold capitalize">{patient?.gender || "—"}</span></div>
+          <div><span className="text-gray-500">Phone:</span> <span className="font-semibold">{patient?.phone || "—"}</span></div>
+          <div><span className="text-gray-500">Date:</span> <span className="font-semibold">{new Date(rx.createdAt).toLocaleDateString("en-IN")}</span></div>
+          <div><span className="text-gray-500">Rx No:</span> <span className="font-semibold">#{rx.id}</span></div>
+        </div>
+
+        {/* Diagnosis */}
+        <div className="mb-4">
+          <p className="text-sm font-semibold text-gray-500 uppercase mb-1">Diagnosis</p>
+          <p className="text-gray-800 font-medium">{rx.diagnosis || "—"}</p>
+          {rx.notes && <p className="text-gray-500 text-sm mt-1 italic">{rx.notes}</p>}
+        </div>
+
+        {/* Medicines */}
+        {medicines.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-semibold text-gray-500 uppercase mb-2">℞ Medicines</p>
+            <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+              <thead className="bg-blue-900 text-white">
+                <tr>
+                  {["#", "Medicine", "Dose", "Duration", "Instruction"].map((h) => (
+                    <th key={h} className="px-3 py-2 text-left text-xs font-semibold">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {medicines.map((m, i) => (
+                  <tr key={i} className="border-b border-gray-100">
+                    <td className="px-3 py-2 text-gray-500">{i + 1}</td>
+                    <td className="px-3 py-2 font-medium text-gray-800">
+                      {m.medicineName}
+                      {m.generic && <span className="text-xs text-gray-400 ml-1">({m.generic})</span>}
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">{m.dose || "—"}</td>
+                    <td className="px-3 py-2 text-gray-600">{m.duration || "—"}</td>
+                    <td className="px-3 py-2 text-gray-600">{m.instruction || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Tests */}
+        {tests.length > 0 && (
+          <div className="mb-6">
+            <p className="text-sm font-semibold text-gray-500 uppercase mb-2">🧪 Investigations</p>
+            <div className="flex flex-wrap gap-2">
+              {tests.map((t, i) => (
+                <span key={i} className="bg-yellow-50 border border-yellow-300 text-yellow-800 px-3 py-1 rounded-lg text-sm">
+                  {t.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="border-t pt-4 mt-6 flex justify-between items-end text-sm">
+          <p className="text-gray-400 text-xs">This is a computer generated prescription.</p>
+          <div className="text-right">
+            <div className="border-t border-gray-400 pt-1 mt-8 w-40">
+              <p className="text-gray-600 text-xs text-center">Dr. Sample Doctor</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Print CSS */}
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          .print-area { 
+            box-shadow: none !important; 
+            margin: 0 !important;
+            max-width: 100% !important;
+          }
+          body { background: white !important; }
+        }
+      `}</style>
+    </>
+  );
+}
+===== D:\medical-saas\app\profit\page.js =====
+import { db } from "@/lib/db";
+import { saleItems, purchaseItems } from "@/lib/schema";
+import Link from "next/link";
+
+export default async function Profit() {
+  const sold = await db.select().from(saleItems);
+  const purchased = await db.select().from(purchaseItems);
+
+  const medicineMap = {};
+
+  for (const item of sold) {
+    const name = item.medicineName;
+    if (!medicineMap[name]) medicineMap[name] = { name, revenue: 0, cost: 0, qty: 0 };
+    medicineMap[name].revenue += item.amount;
+    medicineMap[name].qty += item.qty;
+  }
+
+  for (const item of purchased) {
+    const name = item.medicineName;
+    if (!medicineMap[name]) medicineMap[name] = { name, revenue: 0, cost: 0, qty: 0 };
+    medicineMap[name].cost += item.amount;
+  }
+
+  const medicines = Object.values(medicineMap).map((m) => ({
+    ...m,
+    profit: m.revenue - m.cost,
+    margin: m.revenue > 0 ? (((m.revenue - m.cost) / m.revenue) * 100).toFixed(1) : 0,
+  })).sort((a, b) => b.profit - a.profit);
+
+  const totalRevenue = medicines.reduce((s, m) => s + m.revenue, 0);
+  const totalCost = medicines.reduce((s, m) => s + m.cost, 0);
+  const totalProfit = totalRevenue - totalCost;
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <Link href="/dashboard" className="text-blue-300 hover:text-white text-sm">← Dashboard</Link>
+        <h1 className="text-lg font-bold">💰 Profit / Loss</h1>
+      </header>
+
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white rounded-xl shadow p-4 border-l-4 border-green-500">
+            <p className="text-xs text-gray-500 uppercase font-semibold">Total Revenue</p>
+            <p className="text-2xl font-bold text-green-700 mt-1">₹{totalRevenue.toFixed(0)}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow p-4 border-l-4 border-red-400">
+            <p className="text-xs text-gray-500 uppercase font-semibold">Total Cost</p>
+            <p className="text-2xl font-bold text-red-600 mt-1">₹{totalCost.toFixed(0)}</p>
+          </div>
+          <div className={`bg-white rounded-xl shadow p-4 border-l-4 ${totalProfit >= 0 ? "border-blue-500" : "border-red-600"}`}>
+            <p className="text-xs text-gray-500 uppercase font-semibold">Net Profit</p>
+            <p className={`text-2xl font-bold mt-1 ${totalProfit >= 0 ? "text-blue-700" : "text-red-700"}`}>
+              ₹{totalProfit.toFixed(0)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <div className="px-4 py-3 border-b font-semibold text-gray-700">Medicine-wise Profit</div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                {["Medicine", "Qty Sold", "Revenue", "Cost", "Profit", "Margin"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {medicines.length === 0 && (
+                <tr><td colSpan={6} className="text-center py-8 text-gray-400">No data yet</td></tr>
+              )}
+              {medicines.map((m, i) => (
+                <tr key={i} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-800">{m.name}</td>
+                  <td className="px-4 py-3 text-gray-500">{m.qty}</td>
+                  <td className="px-4 py-3 text-green-700 font-semibold">₹{m.revenue.toFixed(0)}</td>
+                  <td className="px-4 py-3 text-red-500">₹{m.cost.toFixed(0)}</td>
+                  <td className={`px-4 py-3 font-bold ${m.profit >= 0 ? "text-blue-700" : "text-red-700"}`}>
+                    ₹{m.profit.toFixed(0)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      m.margin >= 20 ? "bg-green-100 text-green-700" :
+                      m.margin >= 10 ? "bg-yellow-100 text-yellow-700" :
+                      "bg-red-100 text-red-700"
+                    }`}>{m.margin}%</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+===== D:\medical-saas\app\purchases\new\page.js =====
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+export default function NewPurchase() {
+  const router = useRouter();
+  const [suppliers, setSuppliers] = useState([]);
+  const [form, setForm] = useState({ supplierId: "", supplierName: "", invoiceNo: "" });
+  const [items, setItems] = useState([{ medicineName: "", batch: "", expiry: "", qty: "", purchasePrice: "", mrp: "", gst: "12", amount: "" }]);
+
+  useEffect(() => {
+    fetch("/api/suppliers").then((r) => r.json()).then(setSuppliers);
+  }, []);
+
+  function handleSupplier(e) {
+    const s = suppliers.find((s) => s.id === parseInt(e.target.value));
+    setForm({ ...form, supplierId: e.target.value, supplierName: s?.name || "" });
+  }
+
+  function updateItem(idx, field, value) {
+    const updated = [...items];
+    updated[idx][field] = value;
+    if (field === "qty" || field === "purchasePrice") {
+      const qty = parseFloat(updated[idx].qty) || 0;
+      const price = parseFloat(updated[idx].purchasePrice) || 0;
+      updated[idx].amount = (qty * price).toFixed(2);
+    }
+    setItems(updated);
+  }
+
+  function addRow() {
+    setItems([...items, { medicineName: "", batch: "", expiry: "", qty: "", purchasePrice: "", mrp: "", gst: "12", amount: "" }]);
+  }
+
+  function removeRow(idx) {
+    setItems(items.filter((_, i) => i !== idx));
+  }
+
+  const total = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    await fetch("/api/purchases", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...form, items, totalAmount: total }),
+    });
+    router.push("/purchases");
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <Link href="/dashboard" className="text-blue-300 hover:text-white text-sm">← Dashboard</Link>
+        <h1 className="text-lg font-bold">📦 New Purchase</h1>
+      </header>
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+
+        <div className="bg-white rounded-xl shadow p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+            <select value={form.supplierId} onChange={handleSupplier}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Select Supplier</option>
+              {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Invoice No</label>
+            <input value={form.invoiceNo} onChange={(e) => setForm({ ...form, invoiceNo: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Supplier invoice number" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                {["Medicine Name", "Batch", "Expiry", "Qty", "Purchase ₹", "MRP ₹", "GST%", "Amount", ""].map((h) => (
+                  <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, idx) => (
+                <tr key={idx} className="border-b">
+                  <td className="px-3 py-2">
+                    <input value={item.medicineName} onChange={(e) => updateItem(idx, "medicineName", e.target.value)}
+                      className="w-36 border border-gray-300 rounded px-2 py-1 text-sm" placeholder="Medicine name" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input value={item.batch} onChange={(e) => updateItem(idx, "batch", e.target.value)}
+                      className="w-20 border border-gray-300 rounded px-2 py-1 text-sm" placeholder="Batch" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input value={item.expiry} onChange={(e) => updateItem(idx, "expiry", e.target.value)}
+                      className="w-24 border border-gray-300 rounded px-2 py-1 text-sm" placeholder="MM/YYYY" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input type="number" value={item.qty} onChange={(e) => updateItem(idx, "qty", e.target.value)}
+                      className="w-16 border border-gray-300 rounded px-2 py-1 text-sm text-center" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input type="number" value={item.purchasePrice} onChange={(e) => updateItem(idx, "purchasePrice", e.target.value)}
+                      className="w-20 border border-gray-300 rounded px-2 py-1 text-sm" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input type="number" value={item.mrp} onChange={(e) => updateItem(idx, "mrp", e.target.value)}
+                      className="w-20 border border-gray-300 rounded px-2 py-1 text-sm" />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input type="number" value={item.gst} onChange={(e) => updateItem(idx, "gst", e.target.value)}
+                      className="w-14 border border-gray-300 rounded px-2 py-1 text-sm" />
+                  </td>
+                  <td className="px-3 py-2 font-semibold text-gray-700">₹{item.amount || "0"}</td>
+                  <td className="px-3 py-2">
+                    <button onClick={() => removeRow(idx)} className="text-red-400 hover:text-red-600 text-lg">×</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="px-4 py-3 flex items-center justify-between border-t">
+            <button onClick={addRow}
+              className="text-blue-600 hover:underline text-sm font-medium">+ Add Row</button>
+            <span className="font-bold text-gray-800">Total: ₹{total.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <button onClick={handleSubmit}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition text-lg">
+          ✅ Save Purchase
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+===== D:\medical-saas\app\purchases\page.js =====
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { purchases } from "@/lib/schema";
+
+export default async function PurchaseHistory() {
+  const all = await db.select().from(purchases);
+  const sorted = all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="text-blue-300 hover:text-white text-sm">← Dashboard</Link>
+          <h1 className="text-lg font-bold">📜 Purchase History</h1>
+        </div>
+        <Link href="/purchases/new"
+          className="bg-green-500 hover:bg-green-400 px-4 py-2 rounded-lg text-sm font-semibold transition">
+          + New Purchase
+        </Link>
+      </header>
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-blue-900 text-white">
+              <tr>
+                {["Supplier", "Invoice No", "Total Amount", "Paid", "Pending", "Date"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.length === 0 && (
+                <tr><td colSpan={6} className="text-center py-8 text-gray-400">No purchases yet</td></tr>
+              )}
+              {sorted.map((p) => (
+                <tr key={p.id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-800">{p.supplierName || "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">{p.invoiceNo || "—"}</td>
+                  <td className="px-4 py-3 font-semibold text-gray-800">₹{p.totalAmount.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-green-700 font-semibold">₹{p.paidAmount.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-red-600 font-semibold">₹{(p.totalAmount - p.paidAmount).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-gray-500">{new Date(p.createdAt).toLocaleDateString("en-IN")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+===== D:\medical-saas\app\report\page.js =====
+import { db } from "@/lib/db";
+import { sales } from "@/lib/schema";
+import Link from "next/link";
+
+export default async function Report() {
+  const allSales = await db.select().from(sales);
+
+  const today = new Date();
+  const todayStr = today.toDateString();
+  const thisMonth = today.getMonth();
+  const thisYear = today.getFullYear();
+
+  const todaySales = allSales.filter((s) => new Date(s.createdAt).toDateString() === todayStr);
+  const monthSales = allSales.filter((s) => {
+    const d = new Date(s.createdAt);
+    return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+  });
+
+  const todayRevenue = todaySales.reduce((s, b) => s + b.netAmount, 0);
+  const monthRevenue = monthSales.reduce((s, b) => s + b.netAmount, 0);
+  const totalRevenue = allSales.reduce((s, b) => s + b.netAmount, 0);
+
+  const cashTotal = allSales.filter((b) => b.paymentType === "cash").reduce((s, b) => s + b.netAmount, 0);
+  const upiTotal = allSales.filter((b) => b.paymentType === "upi").reduce((s, b) => s + b.netAmount, 0);
+  const CreditTotal = allSales.filter((b) => b.paymentType === "Credit").reduce((s, b) => s + b.netAmount, 0);
+
+  // Last 7 days
+  const last7 = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dayStr = d.toDateString();
+    const daySales = allSales.filter((s) => new Date(s.createdAt).toDateString() === dayStr);
+    const dayTotal = daySales.reduce((s, b) => s + b.netAmount, 0);
+    last7.push({
+      label: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+      total: dayTotal,
+      count: daySales.length,
+    });
+  }
+
+  const maxVal = Math.max(...last7.map((d) => d.total), 1);
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <Link href="/dashboard" className="text-blue-300 hover:text-white text-sm">← Dashboard</Link>
+        <h1 className="text-lg font-bold">📊 Sales Report</h1>
+      </header>
+
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {[
+            { label: "Today's Revenue",  value: `₹${todayRevenue.toFixed(0)}`,  sub: `${todaySales.length} bills`,   border: "border-blue-500",  text: "text-blue-700" },
+            { label: "This Month",       value: `₹${monthRevenue.toFixed(0)}`,  sub: `${monthSales.length} bills`,   border: "border-green-500", text: "text-green-700" },
+            { label: "Total Revenue",    value: `₹${totalRevenue.toFixed(0)}`,  sub: `${allSales.length} bills`,     border: "border-violet-500",text: "text-violet-700" },
+            { label: "Cash Sales",       value: `₹${cashTotal.toFixed(0)}`,     sub: "Cash payments",                border: "border-green-400", text: "text-green-600" },
+            { label: "UPI Sales",        value: `₹${upiTotal.toFixed(0)}`,      sub: "UPI payments",                 border: "border-blue-400",  text: "text-blue-600" },
+            { label: "Credit Given",     value: `₹${CreditTotal.toFixed(0)}`,   sub: "Credit sales",                 border: "border-red-400",   text: "text-red-600" },
+          ].map((s, i) => (
+            <div key={i} className={`bg-white rounded-xl shadow p-4 border-l-4 ${s.border}`}>
+              <p className="text-xs text-gray-500 uppercase font-semibold">{s.label}</p>
+              <p className={`text-2xl font-bold mt-1 ${s.text}`}>{s.value}</p>
+              <p className="text-xs text-gray-400 mt-1">{s.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Last 7 Days Chart */}
+        <div className="bg-white rounded-xl shadow p-6">
+          <h3 className="font-bold text-gray-700 mb-4">Last 7 Days Sales</h3>
+          <div className="flex items-end gap-3 h-40">
+            {last7.map((d, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <span className="text-xs text-gray-500 font-medium">₹{d.total.toFixed(0)}</span>
+                <div
+                  className="w-full bg-blue-500 rounded-t-md transition-all"
+                  style={{ height: `${(d.total / maxVal) * 120}px`, minHeight: d.total > 0 ? "4px" : "0" }}>
+                </div>
+                <span className="text-xs text-gray-400">{d.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+
+===== D:\medical-saas\app\sales\new\page.js =====
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+export default function NewBill() {
+  const router = useRouter();
+  const [medicines, setMedicines] = useState([]);
+  const [search, setSearch] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [items, setItems] = useState([]);
+  const [patient, setPatient] = useState({ name: "", phone: "" });
+  const [paymentType, setPaymentType] = useState("cash");
+  const [discount, setDiscount] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/medicines").then((r) => r.json()).then(setMedicines);
+  }, []);
+
+  function handleSearch(val) {
+    setSearch(val);
+    if (val.length < 2) { setSuggestions([]); return; }
+    setSuggestions(
+      medicines.filter((m) =>
+        m.name.toLowerCase().includes(val.toLowerCase()) ||
+        (m.generic && m.generic.toLowerCase().includes(val.toLowerCase()))
+      ).slice(0, 6)
+    );
+  }
+
+  function addItem(med) {
+    const existing = items.find((i) => i.medicineId === med.id);
+    if (existing) {
+      setItems(items.map((i) =>
+        i.medicineId === med.id ? { ...i, qty: i.qty + 1, amount: (i.qty + 1) * i.mrp } : i
+      ));
+    } else {
+      setItems([...items, {
+        medicineId: med.id,
+        medicineName: med.name,
+        batch: med.batch || "",
+        expiry: med.expiry || "",
+        qty: 1,
+        mrp: med.mrp,
+        gst: med.gst || 0,
+        discount: 0,
+        amount: med.mrp,
+      }]);
+    }
+    setSearch("");
+    setSuggestions([]);
+  }
+
+  function updateQty(idx, qty) {
+    const updated = [...items];
+    updated[idx].qty = parseInt(qty) || 1;
+    updated[idx].amount = updated[idx].qty * updated[idx].mrp;
+    setItems(updated);
+  }
+
+  function removeItem(idx) {
+    setItems(items.filter((_, i) => i !== idx));
+  }
+
+  const subtotal = items.reduce((s, i) => s + i.amount, 0);
+  const netAmount = Math.max(0, subtotal - parseFloat(discount || 0));
+
+  async function handleSubmit() {
+    if (!items.length) return alert("Add at least one medicine");
+    if (!patient.name) return alert("Enter patient name");
+    const res = await fetch("/api/sales", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ patient, items, subtotal, discount: parseFloat(discount || 0), netAmount, paymentType }),
+    });
+    const data = await res.json();
+    if (data.success) router.push(`/sales/${data.billId}`);
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <a href="/dashboard" className="text-blue-300 hover:text-white text-sm">← Dashboard</a>
+        <h1 className="text-lg font-bold">🧾 New Bill</h1>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+
+        {/* Patient */}
+        <div className="bg-white rounded-xl shadow p-4 grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name *</label>
+            <input value={patient.name} onChange={(e) => setPatient({ ...patient, name: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter name" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <input value={patient.phone} onChange={(e) => setPatient({ ...patient, phone: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="10-digit number" />
+          </div>
+        </div>
+
+        {/* Medicine Search */}
+        <div className="bg-white rounded-xl shadow p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Search Medicine</label>
+          <div className="relative">
+            <input value={search} onChange={(e) => handleSearch(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Type medicine name or generic..." />
+            {suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 mt-1">
+                {suggestions.map((m) => (
+                  <div key={m.id} onClick={() => addItem(m)}
+                    className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0">
+                    <span className="font-medium text-gray-800">{m.name}</span>
+                    <span className="text-gray-400 ml-2 text-xs">{m.generic}</span>
+                    <span className="float-right font-semibold text-blue-700">₹{m.mrp}</span>
+                    <span className="float-right mr-4 text-xs text-gray-400">Stock: {m.stock}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Items Table */}
+        {items.length > 0 && (
+          <div className="bg-white rounded-xl shadow overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  {["Medicine", "Batch", "Expiry", "Qty", "MRP", "Amount", ""].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, idx) => (
+                  <tr key={idx} className="border-b">
+                    <td className="px-4 py-3 font-medium text-gray-800">{item.medicineName}</td>
+                    <td className="px-4 py-3 text-gray-500">{item.batch || "—"}</td>
+                    <td className="px-4 py-3 text-gray-500">{item.expiry || "—"}</td>
+                    <td className="px-4 py-3">
+                      <input type="number" value={item.qty} min="1"
+                        onChange={(e) => updateQty(idx, e.target.value)}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-sm text-center" />
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">₹{item.mrp}</td>
+                    <td className="px-4 py-3 font-semibold text-gray-800">₹{item.amount.toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600 text-lg">×</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Summary + Payment */}
+        {items.length > 0 && (
+          <div className="bg-white rounded-xl shadow p-4 space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Subtotal</span>
+              <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-500">Discount (₹)</span>
+              <input type="number" value={discount} min="0"
+                onChange={(e) => setDiscount(e.target.value)}
+                className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right" />
+            </div>
+            <div className="flex justify-between font-bold text-lg border-t pt-3">
+              <span>Net Amount</span>
+              <span className="text-blue-700">₹{netAmount.toFixed(2)}</span>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Payment Type</label>
+              <div className="flex gap-3">
+                {["cash", "upi", "Credit"].map((t) => (
+                  <button key={t} onClick={() => setPaymentType(t)}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize transition ${
+                      paymentType === t ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}>
+                    {t === "cash" ? "💵 Cash" : t === "upi" ? "📱 UPI" : "📒 Credit"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button onClick={handleSubmit}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition text-lg">
+              ✅ Generate Bill
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+===== D:\medical-saas\app\sales\[id]\page.js =====
+import { db } from "@/lib/db";
+import { sales, saleItems } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+import Link from "next/link";
+
+export default async function BillDetail({ params }) {
+  const { id } = await params;
+  const bill = await db.select().from(sales).where(eq(sales.id, parseInt(id))).limit(1);
+  const items = await db.select().from(saleItems).where(eq(saleItems.saleId, parseInt(id)));
+
+  if (!bill.length) return <div className="p-8 text-center text-gray-500">Bill not found</div>;
+
+  const b = bill[0];
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-4">
+          <Link href="/sales" className="text-blue-300 hover:text-white text-sm">← All Bills</Link>
+          <h1 className="text-lg font-bold">🧾 {b.billNo}</h1>
+        </div>
+        <button onClick={() => window.print()}
+          className="bg-green-500 hover:bg-green-400 px-4 py-2 rounded-lg text-sm font-semibold transition">
+          🖨️ Print
+        </button>
+      </header>
+
+      <div className="max-w-2xl mx-auto px-4 py-6" id="print-area">
+        <div className="bg-white rounded-xl shadow p-6 space-y-4">
+          <div className="text-center border-b pb-4">
+            <h2 className="text-xl font-bold text-blue-900">Medical SaaS</h2>
+            <p className="text-gray-500 text-sm">GST Bill</p>
+            <p className="text-gray-400 text-xs mt-1">{b.billNo} | {new Date(b.createdAt).toLocaleDateString("en-IN")}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div><span className="text-gray-500">Patient:</span> <span className="font-medium">{b.patientName}</span></div>
+            <div><span className="text-gray-500">Phone:</span> <span className="font-medium">{b.patientPhone || "—"}</span></div>
+            <div><span className="text-gray-500">Payment:</span>
+              <span className={`ml-1 font-semibold capitalize ${b.paymentType === "Credit" ? "text-red-600" : "text-green-600"}`}>
+                {b.paymentType}
+              </span>
+            </div>
+          </div>
+
+          <table className="w-full text-sm border-t pt-2">
+            <thead>
+              <tr className="border-b text-gray-500">
+                <th className="text-left py-2">Medicine</th>
+                <th className="text-center py-2">Qty</th>
+                <th className="text-right py-2">MRP</th>
+                <th className="text-right py-2">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} className="border-b">
+                  <td className="py-2">{item.medicineName}</td>
+                  <td className="py-2 text-center">{item.qty}</td>
+                  <td className="py-2 text-right">₹{item.mrp}</td>
+                  <td className="py-2 text-right font-medium">₹{item.amount.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="space-y-1 text-sm border-t pt-3">
+            <div className="flex justify-between text-gray-500">
+              <span>Subtotal</span><span>₹{b.subtotal.toFixed(2)}</span>
+            </div>
+            {b.discount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Discount</span><span>- ₹{b.discount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-lg border-t pt-2">
+              <span>Net Amount</span>
+              <span className="text-blue-700">₹{b.netAmount.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+===== D:\medical-saas\app\sales\page.js =====
+import { db } from "@/lib/db";
+import { sales } from "@/lib/schema";
+import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+export default async function AllBills() {
+  const cookieStore = await cookies();
+  if (!cookieStore.get("auth")) redirect("/login");
+
+  const allSales = await db.select().from(sales);
+  const sorted = allSales.sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard"
+            className="text-blue-300 hover:text-white text-sm"
+          >
+            ← Dashboard
+          </Link>
+          <h1 className="text-lg font-bold">📋 All Bills</h1>
+        </div>
+        <Link
+          href="/sales/new"
+          className="bg-green-500 hover:bg-green-400 px-4 py-2 rounded-lg text-sm font-semibold transition"
+        >
+          + New Bill
+        </Link>
+      </header>
+
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-blue-900 text-white">
+              <tr>
+                {[
+                  "Bill No",
+                  "Patient",
+                  "Phone",
+                  "Amount",
+                  "Payment",
+                  "Date",
+                  "Action",
+                ].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-semibold">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-gray-400">
+                    No bills yet
+                  </td>
+                </tr>
+              )}
+              {sorted.map((b) => (
+                <tr key={b.id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-blue-700">
+                    {b.billNo}
+                  </td>
+                  <td className="px-4 py-3 text-gray-800">{b.patientName}</td>
+                  <td className="px-4 py-3 text-gray-500">
+                    {b.patientPhone || "—"}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-gray-800">
+                    ₹{b.netAmount.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${
+                        b.paymentType === "Credit"
+                          ? "bg-red-100 text-red-700"
+                          : b.paymentType === "upi"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-green-100 text-green-700"
+                      }`}
+                    >
+                      {b.paymentType}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">
+                    {new Date(b.createdAt).toLocaleDateString("en-IN")}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/sales/${b.id}`}
+                      className="text-blue-600 hover:underline text-xs"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+===== D:\medical-saas\app\suppliers\new\page.js =====
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+export default function NewSupplier() {
+  const router = useRouter();
+  const [form, setForm] = useState({ name: "", phone: "", address: "", gstNo: "" });
+
+  function handle(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    await fetch("/api/suppliers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    router.push("/suppliers");
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
+        <Link href="/suppliers" className="text-blue-300 hover:text-white text-sm">← Back</Link>
+        <h1 className="text-lg font-bold">🏭 Add Supplier</h1>
+      </header>
+      <div className="max-w-xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-xl shadow p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {[
+              { name: "name",    label: "Supplier Name *", required: true },
+              { name: "phone",   label: "Phone" },
+              { name: "gstNo",   label: "GST Number" },
+              { name: "address", label: "Address" },
+            ].map((f) => (
+              <div key={f.name}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                <input type="text" name={f.name} value={form[f.name]} onChange={handle}
+                  required={f.required}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            ))}
+            <button type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+              Save Supplier
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+===== D:\medical-saas\app\suppliers\page.js =====
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { suppliers } from "@/lib/schema";
+
+export default async function Suppliers() {
+  const all = await db.select().from(suppliers);
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="text-blue-300 hover:text-white text-sm">← Dashboard</Link>
+          <h1 className="text-lg font-bold">🏭 Suppliers</h1>
+        </div>
+        <Link href="/suppliers/new"
+          className="bg-green-500 hover:bg-green-400 px-4 py-2 rounded-lg text-sm font-semibold transition">
+          + Add Supplier
+        </Link>
+      </header>
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-blue-900 text-white">
+              <tr>
+                {["Name", "Phone", "GST No", "Address", "Action"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {all.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-8 text-gray-400">No suppliers added yet</td></tr>
+              )}
+              {all.map((s) => (
+                <tr key={s.id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
+                  <td className="px-4 py-3 text-gray-500">{s.phone || "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">{s.gstNo || "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">{s.address || "—"}</td>
+                  <td className="px-4 py-3">
+                    <Link href={`/suppliers/${s.id}`} className="text-blue-600 hover:underline text-xs">View</Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+===== D:\medical-saas\app\globals.css =====
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+===== D:\medical-saas\app\layout.js =====
+import "./globals.css";
+
+export const metadata = {
+  title: "Medical SaaS",
+  description: "Smart billing for medical stores",
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body className="bg-gray-100 text-gray-900 antialiased">
+        {children}
+      </body>
+    </html>
+  );
+}
+
+
+===== D:\medical-saas\app\page.js =====
+import Link from "next/link";
+
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-green-700">
+      <header className="bg-blue-950 px-6 py-4 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">💊</span>
+          <div>
+            <h1 className="text-white text-xl font-bold">Medical SaaS</h1>
+            <p className="text-blue-300 text-xs">Smart billing for medical stores</p>
+          </div>
+        </div>
+        <Link href="/login"
+          className="bg-green-500 hover:bg-green-400 text-white px-5 py-2 rounded-lg font-semibold text-sm transition">
+          Login
+        </Link>
+      </header>
+
+      <section className="text-center py-20 px-6">
+        <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
+          Fastest Billing Software<br />
+          <span className="text-green-400">for Your Medical Store</span>
+        </h2>
+        <p className="text-blue-200 text-lg mb-8 max-w-xl mx-auto">
+          GST Bills · Stock Management · Credit Tracking · Doctor Prescription — all in one place.
+        </p>
+        <Link href="/register"
+          className="bg-green-500 hover:bg-green-400 text-white px-10 py-4 rounded-xl font-bold text-lg shadow-lg transition">
+          Start Free Trial
+        </Link>
+      </section>
+
+      <section className="max-w-6xl mx-auto px-6 pb-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { icon: "🧾", title: "Fast GST Billing", desc: "Generate bills in minutes, send via WhatsApp" },
+          { icon: "📦", title: "Stock Management", desc: "Expiry alerts, batch tracking, low stock warnings" },
+          { icon: "💰", title: "Credit Tracking", desc: "A/R aging — see who owes how much, since when" },
+          { icon: "🏥", title: "Doctor + Pharmacy", desc: "Digital prescription workflow — paperless counter" },
+          { icon: "📊", title: "Reports & Profit", desc: "Item-wise profit, daily/monthly sales charts" },
+          { icon: "🌐", title: "Your Own Website", desc: "Professional website on your domain — included" },
+        ].map((f, i) => (
+          <div key={i} className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition">
+            <div className="text-4xl mb-3">{f.icon}</div>
+            <h3 className="text-white font-bold text-lg mb-1">{f.title}</h3>
+            <p className="text-blue-200 text-sm">{f.desc}</p>
+          </div>
+        ))}
+      </section>
+
+      <footer className="text-center py-6 text-blue-300 text-sm border-t border-white/10">
+        © 2026 Medical SaaS — Built for India
+      </footer>
+    </main>
+  );
+}
+
+
+===== D:\medical-saas\lib\db.js =====
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
+
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
+
+export const db = drizzle(client);
+
+===== D:\medical-saas\lib\schema.js =====
+import { sql } from "drizzle-orm";
+import { integer, text, real, sqliteTable } from "drizzle-orm/sqlite-core";
+
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  phone: text("phone").notNull().unique(),
+  password: text("password").notNull(),
+  role: text("role").default("staff"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
+export const medicines = sqliteTable("medicines", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  generic: text("generic"),
+  company: text("company"),
+  batch: text("batch"),
+  expiry: text("expiry"),
+  mrp: real("mrp").notNull(),
+  purchasePrice: real("purchase_price"),
+  stock: integer("stock").default(0),
+  unit: text("unit").default("strip"),
+  rack: text("rack"),
+  hsn: text("hsn"),
+  gst: real("gst").default(12),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
+export const patients = sqliteTable("patients", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  address: text("address"),
+  age: integer("age"),
+  gender: text("gender"),
+  complaint: text("complaint"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
+export const prescriptions = sqliteTable("prescriptions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  patientId: integer("patient_id").notNull(),
+  diagnosis: text("diagnosis"),
+  notes: text("notes"),
+  medicines: text("medicines").notNull(),
+  tests: text("tests"),
+  sentToPharmacy: integer("sent_to_pharmacy").default(0),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
+export const labReports = sqliteTable("lab_reports", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  patientId: integer("patient_id").notNull(),
+  prescriptionId: integer("prescription_id"),
+  category: text("category").notNull(),
+  testName: text("test_name").notNull(),
+  result: text("result"),
+  reportDate: text("report_date"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
+export const suppliers = sqliteTable("suppliers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  address: text("address"),
+  gstNo: text("gst_no"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
+export const sales = sqliteTable("sales", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  billNo: text("bill_no").notNull(),
+  patientId: integer("patient_id"),
+  patientName: text("patient_name"),
+  patientPhone: text("patient_phone"),
+  subtotal: real("subtotal").notNull(),
+  discount: real("discount").default(0),
+  gstAmount: real("gst_amount").default(0),
+  netAmount: real("net_amount").notNull(),
+  paymentType: text("payment_type").default("cash"),
+  paidAmount: real("paid_amount").default(0),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
+export const saleItems = sqliteTable("sale_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  saleId: integer("sale_id").notNull(),
+  medicineId: integer("medicine_id"),
+  medicineName: text("medicine_name").notNull(),
+  batch: text("batch"),
+  expiry: text("expiry"),
+  qty: integer("qty").notNull(),
+  mrp: real("mrp").notNull(),
+  discount: real("discount").default(0),
+  gst: real("gst").default(0),
+  amount: real("amount").notNull(),
+});
+
+export const purchases = sqliteTable("purchases", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  supplierId: integer("supplier_id"),
+  supplierName: text("supplier_name"),
+  invoiceNo: text("invoice_no"),
+  totalAmount: real("total_amount").notNull(),
+  paidAmount: real("paid_amount").default(0),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
+export const purchaseItems = sqliteTable("purchase_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  purchaseId: integer("purchase_id").notNull(),
+  medicineId: integer("medicine_id"),
+  medicineName: text("medicine_name").notNull(),
+  batch: text("batch"),
+  expiry: text("expiry"),
+  qty: integer("qty").notNull(),
+  purchasePrice: real("purchase_price").notNull(),
+  mrp: real("mrp").notNull(),
+  gst: real("gst").default(12),
+  amount: real("amount").notNull(),
+});
+
+export const payments = sqliteTable("payments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  saleId: integer("sale_id").notNull(),
+  patientName: text("patient_name"),
+  amount: real("amount").notNull(),
+  mode: text("mode").default("cash"),
+  note: text("note"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+===== D:\medical-saas\drizzle.config.js =====
+import { defineConfig } from "drizzle-kit";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
+
+export default defineConfig({
+  schema: "./lib/schema.js",
+  out: "./drizzle",
+  dialect: "turso",
+  dbCredentials: {
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  },
+});
+
+===== D:\medical-saas\proxy.js =====
+import { NextResponse } from "next/server";
+
+export function proxy(request) {
+  const { pathname } = request.nextUrl;
+
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/api/login")
+  ) {
+    return NextResponse.next();
+  }
+
+  const auth = request.cookies.get("auth")?.value;
+  if (auth !== process.env.SHOP_PASSWORD) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};

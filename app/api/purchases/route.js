@@ -36,7 +36,7 @@ export async function POST(req) {
       amount: parseFloat(item.amount) || 0,
     });
 
-    // medicines table में stock update करो
+    // update stock in medicines table
     const existing = await db.select().from(medicines)
       .where(eq(medicines.name, item.medicineName)).limit(1);
 
@@ -65,4 +65,3 @@ export async function POST(req) {
 
   return NextResponse.json({ success: true });
 }
-

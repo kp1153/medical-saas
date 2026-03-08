@@ -1,21 +1,10 @@
 import { db } from "@/lib/db";
-import { patients, sales } from "@/lib/schema";
+import { patients } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
-export async function GET(request, { params }) {
+export async function GET(req, { params }) {
   const { id } = await params;
-  const patient = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.id, Number(id)))
-    .get();
-  if (!patient) return Response.json({ error: "Not found" }, { status: 404 });
-
-  const patientSales = await db
-    .select()
-    .from(sales)
-    .where(eq(sales.patientId, Number(id)))
-    .all();
-
-  return Response.json({ ...patient, sales: patientSales });
+  const result = await db.select().from(patients).where(eq(patients.id, parseInt(id))).limit(1);
+  return NextResponse.json(result[0] || null);
 }

@@ -40,7 +40,7 @@ export async function POST(req) {
       amount: item.amount,
     });
 
-    // stock घटाओ
+    // reduce stock
     await db.update(medicines)
       .set({ stock: sql`stock - ${item.qty}` })
       .where(eq(medicines.id, item.medicineId));
@@ -48,4 +48,3 @@ export async function POST(req) {
 
   return NextResponse.json({ success: true, billId });
 }
-

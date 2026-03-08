@@ -1,14 +1,8 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { sales, medicines, payments } from "@/lib/schema";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
 export default async function Dashboard() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("user_id");
-  if (!userId) redirect("/login");
-
   const allSales = await db.select().from(sales);
   const allMedicines = await db.select().from(medicines);
   const allPayments = await db.select().from(payments);
@@ -95,9 +89,27 @@ export default async function Dashboard() {
     },
     {
       href: "/credit",
-      icon: "📒",
+      icon: "🔒",
       label: "Credit",
       color: "bg-red-500 hover:bg-red-600",
+    },
+    {
+      href: "/counter",
+      icon: "🪟",
+      label: "Counter",
+      color: "bg-blue-500 hover:bg-blue-600",
+    },
+    {
+      href: "/doctor",
+      icon: "🩺",
+      label: "Doctor",
+      color: "bg-green-700 hover:bg-green-800",
+    },
+    {
+      href: "/pharmacy",
+      icon: "💊",
+      label: "Pharmacy",
+      color: "bg-purple-600 hover:bg-purple-700",
     },
   ];
 
@@ -121,7 +133,7 @@ export default async function Dashboard() {
             })}
           </span>
           <Link
-            href="/api/auth/logout"
+            href="/api/logout"
             className="bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
           >
             🚪 Logout

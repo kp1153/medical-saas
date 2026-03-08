@@ -9,13 +9,13 @@ export async function GET() {
 
 export async function POST(req) {
   const body = await req.json();
-  await db.insert(patients).values({
+  const inserted = await db.insert(patients).values({
     name: body.name,
     phone: body.phone || null,
     address: body.address || null,
     age: body.age ? parseInt(body.age) : null,
     gender: body.gender || null,
-  });
-  return NextResponse.json({ success: true });
+    complaint: body.complaint || null,
+  }).returning({ id: patients.id });
+  return NextResponse.json({ success: true, id: inserted[0].id });
 }
-
