@@ -1,11 +1,13 @@
-import { db } from "@/lib/db";
+import { db, initDB } from "@/lib/db";
 import { medicines } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import EditMedicineClient from "./EditMedicineClient";
 
+
 export default async function EditMedicinePage({ params }) {
+     await initDB();
   const cookieStore = await cookies();
   if (!cookieStore.get("auth")) redirect("/login");
 
