@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
-  reactCompiler: true,
+  // खाली - कुछ नहीं चाहिए
 };
 
 export default nextConfig;
