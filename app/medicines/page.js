@@ -6,9 +6,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export default async function Medicines() {
-  const cookieStore = await cookies();
-  if (!cookieStore.get("auth")) redirect("/login");
-
   const allMedicines = await db.select().from(medicines);
 
   function getStatus(m) {

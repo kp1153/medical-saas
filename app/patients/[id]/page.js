@@ -8,9 +8,6 @@ import { cookies } from "next/headers";
 export const dynamic = "force-dynamic";
 
 export default async function PatientHistory({ params }) {
-  const cookieStore = await cookies();
-  if (!cookieStore.get("auth")) redirect("/login");
-
   const { id } = await params;
   const pid = parseInt(id);
 

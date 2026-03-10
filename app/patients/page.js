@@ -8,9 +8,6 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default async function Patients() {
-  const cookieStore = await cookies();
-  if (!cookieStore.get("auth")) redirect("/login");
-
   const all = await db.select().from(patients).orderBy(desc(patients.createdAt));
 
   return (

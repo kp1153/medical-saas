@@ -7,8 +7,6 @@ import { redirect } from "next/navigation";
 import EditMedicineClient from "./EditMedicineClient";
 
 export default async function EditMedicinePage({ params }) {
-  const cookieStore = await cookies();
-  if (!cookieStore.get("auth")) redirect("/login");
   const { id } = await params;
   const result = await db
     .select()

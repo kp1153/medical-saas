@@ -6,9 +6,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export default async function AllBills() {
-  const cookieStore = await cookies();
-  if (!cookieStore.get("auth")) redirect("/login");
-
   const allSales = await db.select().from(sales);
   const sorted = allSales.sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
