@@ -63,7 +63,7 @@ export default async function Profit() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>
-                {["Medicine", "Qty Sold", "Revenue", "Cost", "Profit", "Margin"].map((h) => (
+                {["Medicine", "Quantity Sold", "Revenue", "Cost", "Profit", "Margin"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
                 ))}
               </tr>
