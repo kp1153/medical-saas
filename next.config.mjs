@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // खाली - कुछ नहीं चाहिए
+  serverExternalPackages: ['@libsql/client'],
 };
 
 export default nextConfig;
