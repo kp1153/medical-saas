@@ -9,10 +9,11 @@ export async function POST(req) {
   }
 
   const cookieStore = await cookies();
-  cookieStore.set("auth", process.env.SHOP_PASSWORD, {
+  cookieStore.set("auth", "1", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     path: "/",
+    sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7,
   });
 
