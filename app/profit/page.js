@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { db } from "@/lib/db";
 import { saleItems, purchaseItems } from "@/lib/schema";
 import Link from "next/link";
