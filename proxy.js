@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-
-export function proxy(request) {
+  export default function proxy(request) {
   const auth = request.cookies.get("auth");
   const { pathname } = request.nextUrl;
 
