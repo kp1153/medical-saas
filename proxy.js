@@ -4,8 +4,7 @@ export function proxy(request) {
   const auth = request.cookies.get("auth");
   const { pathname } = request.nextUrl;
 
-  const publicPaths = ["/login", "/api/login"];
-  if (publicPaths.some(p => pathname.startsWith(p))) {
+  if (pathname.startsWith("/login") || pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 
