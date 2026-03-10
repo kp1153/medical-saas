@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { medicines } from "@/lib/schema";
@@ -126,3 +127,4 @@ export default async function Medicines() {
     </div>
   );
 }
+

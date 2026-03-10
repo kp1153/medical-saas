@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -198,4 +199,5 @@ export default function NewBill() {
     </div>
   );
 }
+
 

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { db } from "@/lib/db";
 import { sales } from "@/lib/schema";
 import Link from "next/link";
@@ -106,3 +107,4 @@ export default async function AllBills() {
     </div>
   );
 }
+
