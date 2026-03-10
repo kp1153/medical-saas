@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import PrintPrescription from "./PrintPrescription";
 
 const TEST_CATEGORIES = {
   "🩸 Blood Tests": [
@@ -89,6 +90,7 @@ const TEST_CATEGORIES = {
 
 export default function DoctorExamine({ params }) {
   const router = useRouter();
+  const { id: patientId } = useParams();
   const [patient, setPatient] = useState(null);
   const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
@@ -104,18 +106,19 @@ export default function DoctorExamine({ params }) {
   );
   const [selectedTests, setSelectedTests] = useState([]);
 
+  const { id } = useParams();
+
   useEffect(() => {
     async function load() {
-      const { id } = await params;
       const [p, m] = await Promise.all([
-        fetch(`/api/patients/${id}`).then((r) => r.json()),
+        fetch(`/api/patients/${patientId}`).then((r) => r.json()),
         fetch("/api/medicines").then((r) => r.json()),
       ]);
       setPatient(p);
       setAllMedicines(m);
     }
     load();
-  }, []);
+  }, [patientId]);
 
   function handleSearch(val) {
     setSearch(val);
@@ -462,6 +465,14 @@ export default function DoctorExamine({ params }) {
             </div>
           )}
         </div>
+
+    <PrintPrescription
+          patient={patient}
+          diagnosis={diagnosis}
+          notes={notes}
+          items={items}
+          selectedTests={selectedTests}
+        />
 
         <button
           onClick={handleSubmit}
