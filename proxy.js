@@ -1,6 +1,6 @@
-export function proxy(request) {
+ export function proxy(request) {
   const url = new URL(request.url);
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("auth")?.value;
 
   const publicPaths = ["/login"];
   if (publicPaths.includes(url.pathname)) {
