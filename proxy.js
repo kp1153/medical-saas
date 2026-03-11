@@ -1,22 +1,38 @@
 import { NextResponse } from "next/server";
 
 export default function proxy(request) {
-  const auth = request.cookies.get("auth");
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/login") || pathname.startsWith("/api/")) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    res.headers.set("x-middleware-cache", "no-cache");
+    return res;
   }
 
   if (request.nextUrl.searchParams.has("_rsc")) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    res.headers.set("x-middleware-cache", "no-cache");
+    return res;
   }
+
+  const cookieHeader = request.headers.get("cookie") || "";
+  const cookies = Object.fromEntries(
+    cookieHeader.split("; ").filter(Boolean).map((c) => {
+      const [k, ...v] = c.split("=");
+      return [k.trim(), v.join("=")];
+    })
+  );
+  const auth = cookies["auth"];
 
   if (!auth) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const redirectRes = NextResponse.redirect(new URL("/login", request.url));
+    redirectRes.headers.set("x-middleware-cache", "no-cache");
+    return redirectRes;
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+  res.headers.set("x-middleware-cache", "no-cache");
+  return res;
 }
 
 export const config = {
