@@ -1,9 +1,24 @@
 import { db } from "@/lib/db";
 import { patients } from "@/lib/schema";
 import { NextResponse } from "next/server";
+import { like, or, desc } from "drizzle-orm";
 
-export async function GET() {
-  const all = await db.select().from(patients);
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const search = searchParams.get("search")?.trim();
+
+  let all;
+  if (search) {
+    all = await db.select().from(patients).where(
+      or(
+        like(patients.name, `%${search}%`),
+        like(patients.phone, `%${search}%`)
+      )
+    ).orderBy(desc(patients.createdAt));
+  } else {
+    all = await db.select().from(patients).orderBy(desc(patients.createdAt));
+  }
+
   return NextResponse.json(all);
 }
 
