@@ -1,9 +1,11 @@
 "use client";
+import { use } from "react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function PharmacyBill({ params }) {
+  const { id } = use(params);
   const router = useRouter();
   const [rx, setRx] = useState(null);
   const [patient, setPatient] = useState(null);
@@ -14,7 +16,6 @@ export default function PharmacyBill({ params }) {
 
   useEffect(() => {
     async function load() {
-      const { id } = await params;
       const rx = await fetch(`/api/prescriptions/${id}`).then((r) => r.json());
       const patient = await fetch(`/api/patients/${rx.patientId}`).then((r) => r.json());
       const medicines = JSON.parse(rx.medicines);
@@ -24,11 +25,11 @@ export default function PharmacyBill({ params }) {
           const med = await fetch(`/api/medicines/${m.medicineId}`).then((r) => r.json());
           return {
             ...m,
-            mrp: med?.mrp || 0,
-            batch: med?.batch || "",
+            mrp:    med?.mrp    || 0,
+            batch:  med?.batch  || "",
             expiry: med?.expiry || "",
-            qty: 1,
-            amount: med?.mrp || 0,
+            qty:    1,
+            amount: med?.mrp    || 0,
           };
         })
       );
@@ -38,11 +39,11 @@ export default function PharmacyBill({ params }) {
       setItems(enriched);
     }
     load();
-  }, []);
+  }, [id]);
 
   function updateQty(idx, qty) {
     const updated = [...items];
-    updated[idx].qty = parseInt(qty) || 1;
+    updated[idx].qty    = parseInt(qty) || 1;
     updated[idx].amount = updated[idx].qty * updated[idx].mrp;
     setItems(updated);
   }
@@ -51,20 +52,20 @@ export default function PharmacyBill({ params }) {
     setItems(items.filter((_, i) => i !== idx));
   }
 
-  const subtotal = items.reduce((s, i) => s + i.amount, 0);
+  const subtotal  = items.reduce((s, i) => s + i.amount, 0);
   const netAmount = Math.max(0, subtotal - parseFloat(discount || 0));
 
   async function handleSubmit() {
     if (!items.length) return alert("Add at least one medicine");
     setLoading(true);
     const res = await fetch("/api/sales", {
-      method: "POST",
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        patient: { name: patient.name, phone: patient.phone || "" },
+        patient:     { name: patient.name, phone: patient.phone || "" },
         items,
         subtotal,
-        discount: parseFloat(discount || 0),
+        discount:    parseFloat(discount || 0),
         netAmount,
         paymentType,
       }),
@@ -74,7 +75,7 @@ export default function PharmacyBill({ params }) {
     if (data.success) router.push(`/sales/${data.billId}`);
   }
 
-  if (!rx || !patient) return <div className="p-8 text-center text-gray-400">Loading...</div>;
+  if (!rx || !patient) return <div style={{ padding: "32px", textAlign: "center", color: "#9ca3af" }}>Loading...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -145,12 +146,12 @@ export default function PharmacyBill({ params }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Payment Type</label>
             <div className="flex gap-3">
-              {["cash", "upi", "Credit"].map((t) => (
-                <button key={t} onClick={() => setPaymentType(t)}
+              {[["cash", "💵 Cash"], ["upi", "📱 UPI"], ["Credit", "🔒 Credit"]].map(([val, label]) => (
+                <button key={val} onClick={() => setPaymentType(val)}
                   className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize transition ${
-                    paymentType === t ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    paymentType === val ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}>
-                  {t === "cash" ? "💵 Cash" : t === "upi" ? "📱 UPI" : "🔒 Credit"}
+                  {label}
                 </button>
               ))}
             </div>
