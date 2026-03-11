@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { patients, prescriptions, sales, saleItems, labReports } from "@/lib/schema";
 import { eq, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import PatientActions from "./PatientActions";
 
 export const dynamic = "force-dynamic";
