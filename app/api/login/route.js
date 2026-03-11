@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 export async function POST(req) {
   const { password } = await req.json();
@@ -8,8 +7,8 @@ export async function POST(req) {
     return NextResponse.json({ success: false, message: "Wrong password" });
   }
 
-  const cookieStore = await cookies();
-  cookieStore.set("auth", "1", {
+  const response = NextResponse.json({ success: true });
+  response.cookies.set("auth", "1", {
     httpOnly: true,
     secure: true,
     path: "/",
@@ -17,5 +16,5 @@ export async function POST(req) {
     maxAge: 60 * 60 * 24 * 7,
   });
 
-  return NextResponse.json({ success: true });
+  return response;
 }
