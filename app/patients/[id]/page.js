@@ -4,6 +4,7 @@ import { patients, prescriptions, sales, saleItems, labReports } from "@/lib/sch
 import { eq, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import PatientActions from "./PatientActions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +24,12 @@ export default async function PatientHistory({ params }) {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
-        <Link href="/patients" className="text-blue-300 hover:text-white text-sm">← Patients</Link>
-        <h1 className="text-lg font-bold">👤 {patient.name} — Token #{patient.id}</h1>
+      <header className="bg-blue-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-4">
+          <Link href="/patients" className="text-blue-300 hover:text-white text-sm">← Patients</Link>
+          <h1 className="text-lg font-bold">👤 {patient.name} — Token #{patient.id}</h1>
+        </div>
+        <PatientActions patient={patient} />
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
@@ -97,7 +101,7 @@ export default async function PatientHistory({ params }) {
           )}
         </div>
 
-        {/* Lab Reports with results */}
+        {/* Lab Reports */}
         {allLabReports.length > 0 && (
           <div className="bg-white rounded-xl shadow">
             <div className="px-4 py-3 border-b font-semibold text-gray-700">🧪 Lab Reports</div>
