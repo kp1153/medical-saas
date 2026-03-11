@@ -7,13 +7,5 @@ export async function POST(req) {
     return NextResponse.json({ success: false, message: "Wrong password" });
   }
 
-  const response = NextResponse.json({ success: true });
-  response.cookies.set("auth", "1", {
-    httpOnly: false,
-    path: "/",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-  });
-
-  return response;
+  return NextResponse.json({ success: true, token: "authenticated" });
 }

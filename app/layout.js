@@ -1,4 +1,5 @@
 import "./globals.css";
+import AuthProvider from "@/components/AuthProvider";
 
 export const metadata = {
   title: "Medical SaaS",
@@ -15,7 +16,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="bg-gray-100 text-gray-900 antialiased">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

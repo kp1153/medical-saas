@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import Link from "next/link";
+import LogoutButton from "@/components/LogoutButton";
 import { db } from "@/lib/db";
 import { sales, medicines, payments } from "@/lib/schema";
 
@@ -133,12 +134,7 @@ export default async function Dashboard() {
               year: "numeric",
             })}
           </span>
-          <Link
-            href="/api/logout"
-            className="bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
-          >
-            🚪 Logout
-          </Link>
+          <LogoutButton />
         </div>
       </header>
 

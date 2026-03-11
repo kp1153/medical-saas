@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Login() {
@@ -7,6 +7,12 @@ export default function Login() {
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("auth") === "1") {
+      router.replace("/dashboard");
+    }
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -17,6 +23,7 @@ export default function Login() {
     });
     const data = await res.json();
     if (data.success) {
+      localStorage.setItem("auth", "1");
       router.push("/dashboard");
     } else {
       setError(data.message || "Wrong password");
@@ -28,18 +35,14 @@ export default function Login() {
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
         <div className="text-center mb-8">
           <span className="text-5xl">💊</span>
-          <h1 className="text-2xl font-bold text-blue-900 mt-2">
-            Medical SaaS
-          </h1>
+          <h1 className="text-2xl font-bold text-blue-900 mt-2">Medical SaaS</h1>
           <p className="text-gray-500 text-sm mt-1">Sign in to your store</p>
         </div>
         <form onSubmit={handleSubmit} autoComplete="on" className="space-y-4">
           <input type="text" name="username" autoComplete="username"
             value="admin" readOnly className="hidden" />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <div className="relative">
               <input
                 type={show ? "text" : "password"}
