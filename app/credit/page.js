@@ -124,29 +124,33 @@ export default async function Credit() {
                   </td>
                 </tr>
               )}
-              {patients.map((p, i) => (
-                <tr key={i} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
-                  <td className="px-4 py-3 text-gray-500">{p.phone || "—"}</td>
-                  <td className="px-4 py-3 text-gray-700">₹{p.total.toFixed(0)}</td>
-                  <td className="px-4 py-3 text-green-600">₹{p.paid.toFixed(0)}</td>
-                  <td className="px-4 py-3 font-bold text-red-600">
-                    ₹{p.pending.toFixed(0)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {p.phone && (
-                      
-                      href={`https://wa.me/91${p.phone}?text=${encodeURIComponent("Dear " + p.name + ", your pending amount is \u20B9" + p.pending.toFixed(0) + ". Please clear at earliest.")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-green-500 hover:bg-green-400 text-white px-3 py-1 rounded-lg text-xs font-semibold transition"
-                      >
-                        💬 WhatsApp
-                      </a>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {patients.map((p, i) => {
+                const waText = encodeURIComponent("Dear " + p.name + ", your pending amount is Rs." + p.pending.toFixed(0) + ". Please clear at earliest.");
+                const waHref = "https://wa.me/91" + p.phone + "?text=" + waText;
+                return (
+                  <tr key={i} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
+                    <td className="px-4 py-3 text-gray-500">{p.phone || "—"}</td>
+                    <td className="px-4 py-3 text-gray-700">₹{p.total.toFixed(0)}</td>
+                    <td className="px-4 py-3 text-green-600">₹{p.paid.toFixed(0)}</td>
+                    <td className="px-4 py-3 font-bold text-red-600">
+                      ₹{p.pending.toFixed(0)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {p.phone && (
+                        
+                          href={waHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-green-500 hover:bg-green-400 text-white px-3 py-1 rounded-lg text-xs font-semibold transition"
+                        >
+                          💬 WhatsApp
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
