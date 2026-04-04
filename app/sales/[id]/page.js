@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 import { db } from "@/lib/db";
-import { sales, saleItems } from "@/lib/schema";
+import { sales, saleItems, clinicSettings } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import PrintButton from "./PrintButton";
@@ -28,6 +28,9 @@ export default async function BillDetail({ params }) {
     );
 
   const b = bill[0];
+
+  const settingsResult = await db.select().from(clinicSettings).limit(1);
+  const s = settingsResult[0] || {};
 
   const gst5 = items
     .filter((i) => (i.gst || 0) === 5)
@@ -59,6 +62,9 @@ export default async function BillDetail({ params }) {
     minute: "2-digit",
   });
 
+  const clinicName = s.clinicName || "My Clinic";
+  const addressParts = [s.address, s.city, s.state, s.pincode].filter(Boolean);
+
   return (
     <>
       <header className="screen-nav no-print">
@@ -78,22 +84,31 @@ export default async function BillDetail({ params }) {
             <div className="logo-row">
               <div className="logo-box">⚕️</div>
               <div>
-                <div className="clinic-name">Arogya Medical &amp; Clinic</div>
-                <div className="clinic-sub">Trusted Healthcare · Est. 2010</div>
+                <div className="clinic-name">{clinicName}</div>
+                {s.tagline && <div className="clinic-sub">{s.tagline}</div>}
               </div>
             </div>
             <div className="clinic-right">
-              <div>📍 Station Road, Gorakhpur, U.P. — 273001</div>
-              <div>
-                📞 <strong>+91 98765 43210</strong> &nbsp;|&nbsp; 📧
-                arogya@clinic.in
-              </div>
-              <div>
-                GSTIN: <strong>09ABCDE1234F1Z5</strong>
-              </div>
-              <div>
-                Drug Lic: <strong>UP/GKP/2010/0042</strong>
-              </div>
+              {addressParts.length > 0 && (
+                <div>📍 {addressParts.join(", ")}</div>
+              )}
+              {(s.phone || s.email) && (
+                <div>
+                  {s.phone && <>📞 <strong>{s.phone}</strong></>}
+                  {s.phone && s.email && <>&nbsp;|&nbsp;</>}
+                  {s.email && <>📧 {s.email}</>}
+                </div>
+              )}
+              {s.gstin && (
+                <div>
+                  GSTIN: <strong>{s.gstin}</strong>
+                </div>
+              )}
+              {s.dlNo && (
+                <div>
+                  Drug Lic: <strong>{s.dlNo}</strong>
+                </div>
+              )}
             </div>
           </div>
 
@@ -145,10 +160,11 @@ export default async function BillDetail({ params }) {
               <span className="p-lbl">Mobile</span>
               <span className="p-val">{b.patientPhone || "—"}</span>
             </div>
-            <div className="rx-band">
-              👨‍⚕️ &nbsp;<strong>Dr. Kanta Prasad</strong>&nbsp; — MBBS, MD
-              (Medicine) &nbsp;|&nbsp; Reg. No. UP-MCI-12345
-            </div>
+            {s.ownerName && (
+              <div className="rx-band">
+                🏥 &nbsp;<strong>{s.ownerName}</strong>&nbsp; — Proprietor
+              </div>
+            )}
           </div>
 
           {/* Medicines */}
@@ -322,7 +338,7 @@ export default async function BillDetail({ params }) {
             <div className="sig-area">
               <div className="sig-line2" />
               <div className="sig-lbl">Authorised Signatory</div>
-              <div className="sig-sub">Arogya Medical &amp; Clinic</div>
+              <div className="sig-sub">{clinicName}</div>
             </div>
           </div>
 

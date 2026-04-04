@@ -4,18 +4,18 @@ import { eq } from "drizzle-orm";
 
 export async function GET(request, { params }) {
   const { id } = await params;
-  const sale = await db
+  const saleResult = await db
     .select()
     .from(sales)
     .where(eq(sales.id, Number(id)))
-    .get();
+    .limit(1);
+  const sale = saleResult[0];
   if (!sale) return Response.json({ error: "Not found" }, { status: 404 });
 
   const items = await db
     .select()
     .from(saleItems)
-    .where(eq(saleItems.saleId, Number(id)))
-    .all();
+    .where(eq(saleItems.saleId, Number(id)));
 
   return Response.json({ ...sale, items });
 }
