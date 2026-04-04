@@ -19,27 +19,27 @@ export default function Expired() {
             <p className="text-xs text-blue-500">Renewal: ₹1,999/year</p>
           </div>
 
-          
+          <a
             href="https://www.web-developer-kp.com/clinic"
             className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition mb-3"
           >
-            Buy License →
+            Buy License
           </a>
 
-          
+          <a
             href="https://wa.me/919996865069"
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-2xl transition mb-6"
           >
-            💬 WhatsApp Support
+            WhatsApp Support
           </a>
 
           <Link
             href="/login"
             className="text-gray-400 hover:text-gray-600 text-sm underline"
           >
-            ← Back to Login
+            Back to Login
           </Link>
         </div>
       </div>
