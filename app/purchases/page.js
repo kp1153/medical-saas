@@ -2,8 +2,13 @@ export const dynamic = 'force-dynamic';
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { purchases } from "@/lib/schema";
+import { getSession } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 export default async function PurchaseHistory() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const all = await db.select().from(purchases);
   const sorted = all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -50,4 +55,3 @@ export default async function PurchaseHistory() {
     </div>
   );
 }
-

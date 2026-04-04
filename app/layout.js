@@ -2,20 +2,22 @@ import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 
 export const metadata = {
-  title: "Medical SaaS",
-  description: "Smart billing for medical stores",
+  title: "ClinicOS",
+  description: "Smart Clinic Management by Nishant Softwares",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <link
-          href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="bg-gray-100 text-gray-900 antialiased">
+      <body className="bg-gray-50 text-gray-900 antialiased" style={{ fontFamily: "Inter, sans-serif" }}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

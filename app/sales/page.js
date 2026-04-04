@@ -2,10 +2,13 @@ export const dynamic = 'force-dynamic';
 import { db } from "@/lib/db";
 import { sales } from "@/lib/schema";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getSession } from "@/lib/session";
 
 export default async function AllBills() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const allSales = await db.select().from(sales);
   const sorted = allSales.sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
@@ -104,4 +107,3 @@ export default async function AllBills() {
     </div>
   );
 }
-

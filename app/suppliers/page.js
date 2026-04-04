@@ -2,8 +2,13 @@ export const dynamic = 'force-dynamic';
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { suppliers } from "@/lib/schema";
+import { getSession } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 export default async function Suppliers() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const all = await db.select().from(suppliers);
 
   return (
@@ -50,5 +55,3 @@ export default async function Suppliers() {
     </div>
   );
 }
-
-

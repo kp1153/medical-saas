@@ -2,8 +2,13 @@ export const dynamic = 'force-dynamic';
 import { db } from "@/lib/db";
 import { saleItems, purchaseItems } from "@/lib/schema";
 import Link from "next/link";
+import { getSession } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 export default async function Profit() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const sold = await db.select().from(saleItems);
   const purchased = await db.select().from(purchaseItems);
 

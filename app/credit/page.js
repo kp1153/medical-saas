@@ -1,10 +1,15 @@
 import { db } from "@/lib/db";
 import { sales, payments } from "@/lib/schema";
 import Link from "next/link";
+import { getSession } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
 
 export default async function Credit() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const allSales = await db.select().from(sales);
   const allPayments = await db.select().from(payments);
 
@@ -130,7 +135,7 @@ export default async function Credit() {
                   </td>
                   <td className="px-4 py-3">
                     {p.phone && (
-                      <a
+                      
                         href={`https://wa.me/91${p.phone}?text=${encodeURIComponent(
                           `Dear ${p.name}, your pending amount is ₹${p.pending.toFixed(0)}. Please clear at earliest.`
                         )}`}

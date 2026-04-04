@@ -2,8 +2,13 @@ export const dynamic = 'force-dynamic';
 import { db } from "@/lib/db";
 import { sales } from "@/lib/schema";
 import Link from "next/link";
+import { getSession } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 export default async function Report() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const allSales = await db.select().from(sales);
 
   const today = new Date();
@@ -89,5 +94,3 @@ export default async function Report() {
     </div>
   );
 }
-
-

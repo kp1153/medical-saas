@@ -3,8 +3,13 @@ import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
 import { db } from "@/lib/db";
 import { sales, medicines, payments } from "@/lib/schema";
+import { getSession } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 export default async function Dashboard() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const allSales = await db.select().from(sales);
   const allMedicines = await db.select().from(medicines);
   const allPayments = await db.select().from(payments);
@@ -113,15 +118,21 @@ export default async function Dashboard() {
       label: "Pharmacy",
       color: "bg-purple-600 hover:bg-purple-700",
     },
+    {
+      href: "/settings",
+      icon: "⚙️",
+      label: "Settings",
+      color: "bg-slate-600 hover:bg-slate-700",
+    },
   ];
 
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-blue-900 text-white px-6 py-3 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">💊</span>
+          <span className="text-2xl">⚕️</span>
           <div>
-            <h1 className="text-lg font-bold leading-tight">Medical SaaS</h1>
+            <h1 className="text-lg font-bold leading-tight">ClinicOS</h1>
             <p className="text-blue-300 text-xs">Dashboard</p>
           </div>
         </div>
@@ -134,6 +145,9 @@ export default async function Dashboard() {
               year: "numeric",
             })}
           </span>
+          <Link href="/settings" className="text-blue-300 hover:text-white text-lg" title="Settings">
+            ⚙️
+          </Link>
           <LogoutButton />
         </div>
       </header>
