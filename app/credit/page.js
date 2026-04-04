@@ -6,34 +6,6 @@ import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
 
-function CreditRow({ p, i }) {
-  const waText = encodeURIComponent("Dear " + p.name + ", your pending amount is Rs." + p.pending.toFixed(0) + ". Please clear at earliest.");
-  const waHref = "https://wa.me/91" + p.phone + "?text=" + waText;
-  return (
-    <tr key={i} className="border-b hover:bg-gray-50">
-      <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
-      <td className="px-4 py-3 text-gray-500">{p.phone || "—"}</td>
-      <td className="px-4 py-3 text-gray-700">₹{p.total.toFixed(0)}</td>
-      <td className="px-4 py-3 text-green-600">₹{p.paid.toFixed(0)}</td>
-      <td className="px-4 py-3 font-bold text-red-600">
-        ₹{p.pending.toFixed(0)}
-      </td>
-      <td className="px-4 py-3">
-        {p.phone && (
-          
-            href={waHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-green-500 hover:bg-green-400 text-white px-3 py-1 rounded-lg text-xs font-semibold transition"
-          >
-            💬 WhatsApp
-          </a>
-        )}
-      </td>
-    </tr>
-  );
-}
-
 export default async function Credit() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -44,16 +16,16 @@ export default async function Credit() {
   const CreditSales = allSales.filter((s) => s.paymentType === "Credit");
 
   const patientMap = {};
-  
+
   for (const sale of CreditSales) {
     const key = sale.patientPhone || sale.patientName;
     if (!patientMap[key]) {
-      patientMap[key] = { 
-        name: sale.patientName, 
-        phone: sale.patientPhone, 
-        total: 0, 
-        paid: 0, 
-        bills: [] 
+      patientMap[key] = {
+        name: sale.patientName,
+        phone: sale.patientPhone,
+        total: 0,
+        paid: 0,
+        bills: [],
       };
     }
     patientMap[key].total += sale.netAmount;
@@ -82,13 +54,29 @@ export default async function Credit() {
 
   const now = new Date();
   const aging = { d30: 0, d60: 0, d60plus: 0 };
-  
+
   for (const sale of CreditSales) {
     const diff = (now - new Date(sale.createdAt)) / (1000 * 60 * 60 * 24);
     if (diff <= 30) aging.d30 += sale.netAmount;
     else if (diff <= 60) aging.d60 += sale.netAmount;
     else aging.d60plus += sale.netAmount;
   }
+
+  const patientsWithHref = patients.map((p) => ({
+    ...p,
+    waHref: p.phone
+      ? "https://wa.me/91" +
+        p.phone +
+        "?text=" +
+        encodeURIComponent(
+          "Dear " +
+            p.name +
+            ", your pending amount is Rs." +
+            p.pending.toFixed(0) +
+            ". Please clear at earliest."
+        )
+      : null,
+  }));
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -135,8 +123,8 @@ export default async function Credit() {
             <thead className="bg-gray-50 border-b">
               <tr>
                 {["Patient", "Phone", "Total Credit", "Paid", "Pending", "Action"].map((h) => (
-                  <th 
-                    key={h} 
+                  <th
+                    key={h}
                     className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase"
                   >
                     {h}
@@ -145,15 +133,35 @@ export default async function Credit() {
               </tr>
             </thead>
             <tbody>
-              {patients.length === 0 && (
+              {patientsWithHref.length === 0 && (
                 <tr>
                   <td colSpan={6} className="text-center py-8 text-gray-400">
                     No pending Credit
                   </td>
                 </tr>
               )}
-              {patients.map((p, i) => (
-                <CreditRow key={i} p={p} i={i} />
+              {patientsWithHref.map((p, i) => (
+                <tr key={i} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
+                  <td className="px-4 py-3 text-gray-500">{p.phone || "—"}</td>
+                  <td className="px-4 py-3 text-gray-700">₹{p.total.toFixed(0)}</td>
+                  <td className="px-4 py-3 text-green-600">₹{p.paid.toFixed(0)}</td>
+                  <td className="px-4 py-3 font-bold text-red-600">
+                    ₹{p.pending.toFixed(0)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {p.waHref && (
+                      <a
+                        href={p.waHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-green-500 hover:bg-green-400 text-white px-3 py-1 rounded-lg text-xs font-semibold transition"
+                      >
+                        💬 WhatsApp
+                      </a>
+                    )}
+                  </td>
+                </tr>
               ))}
             </tbody>
           </table>
