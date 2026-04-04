@@ -1,15 +1,11 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
 import { db } from "@/lib/db";
 import { sales, medicines, payments } from "@/lib/schema";
-import { getSession } from "@/lib/session";
-import { redirect } from "next/navigation";
-
+import { requireAccess } from "@/lib/access";
 export default async function Dashboard() {
-  const session = await getSession();
-  if (!session) redirect("/login");
-
+  await requireAccess();
   const allSales = await db.select().from(sales);
   const allMedicines = await db.select().from(medicines);
   const allPayments = await db.select().from(payments);
@@ -145,7 +141,11 @@ export default async function Dashboard() {
               year: "numeric",
             })}
           </span>
-          <Link href="/settings" className="text-blue-300 hover:text-white text-lg" title="Settings">
+          <Link
+            href="/settings"
+            className="text-blue-300 hover:text-white text-lg"
+            title="Settings"
+          >
             ⚙️
           </Link>
           <LogoutButton />

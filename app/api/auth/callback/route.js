@@ -2,9 +2,12 @@ import { googleClient } from "@/lib/auth";
 import { decodeIdToken } from "arctic";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { googleUsers } from "@/lib/schema";
+import { googleUsers, users } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { createSessionCookie } from "@/lib/session";
+
+const DEVELOPER_EMAIL = "prasad.kamta@gmail.com";
+const TRIAL_DAYS = 7;
 
 export async function GET(request) {
   const url = new URL(request.url);
@@ -32,7 +35,8 @@ export async function GET(request) {
   const name = claims.name;
   const picture = claims.picture;
 
-  let existing = await db
+  // google_users table update
+  const existing = await db
     .select()
     .from(googleUsers)
     .where(eq(googleUsers.googleId, googleId))
@@ -53,10 +57,46 @@ export async function GET(request) {
       .where(eq(googleUsers.googleId, googleId));
   }
 
+  // users table — KP website इसी में activate करती है
+  const existingUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  if (existingUser.length === 0) {
+    // नया user — trial शुरू
+    const trialEnds = new Date();
+    trialEnds.setDate(trialEnds.getDate() + TRIAL_DAYS);
+    await db.insert(users).values({
+      email,
+      name,
+      status: "trial",
+      expiryDate: trialEnds.toISOString(),
+      reminderSent: 0,
+    });
+  }
+
+  // access check
+  const userRow = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  const u = userRow[0];
+  const isDeveloper = email === DEVELOPER_EMAIL;
+  const isActive = u?.status === "active" && u?.expiryDate && new Date(u.expiryDate) > new Date();
+  const isTrial = u?.status === "trial" && u?.expiryDate && new Date(u.expiryDate) > new Date();
+
   await createSessionCookie({ userId, email, name, picture });
 
   cookieStore.delete("google_oauth_state");
   cookieStore.delete("google_code_verifier");
 
-  return Response.redirect(new URL("/dashboard", request.url).toString());
+  if (isDeveloper || isActive || isTrial) {
+    return Response.redirect(new URL("/dashboard", request.url).toString());
+  }
+
+  return Response.redirect(new URL("/expired", request.url).toString());
 }
