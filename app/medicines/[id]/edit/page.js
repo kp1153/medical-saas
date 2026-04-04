@@ -1,14 +1,13 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 import { db } from "@/lib/db";
 import { medicines } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import EditMedicineClient from "./EditMedicineClient";
-import { getSession } from "@/lib/session";
+import { requireAccess } from "@/lib/access";
 
 export default async function EditMedicinePage({ params }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  await requireAccess();
 
   const { id } = await params;
   const result = await db

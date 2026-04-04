@@ -1,13 +1,12 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 import { db } from "@/lib/db";
 import { sales } from "@/lib/schema";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
+import { requireAccess } from "@/lib/access";
 
 export default async function AllBills() {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  await requireAccess();
 
   const allSales = await db.select().from(sales);
   const sorted = allSales.sort(

@@ -1,14 +1,12 @@
 import { db } from "@/lib/db";
 import { sales, payments } from "@/lib/schema";
 import Link from "next/link";
-import { getSession } from "@/lib/session";
-import { redirect } from "next/navigation";
+import { requireAccess } from "@/lib/access";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function Credit() {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  await requireAccess();
 
   const allSales = await db.select().from(sales);
   const allPayments = await db.select().from(payments);
@@ -73,7 +71,7 @@ export default async function Credit() {
             p.name +
             ", your pending amount is Rs." +
             p.pending.toFixed(0) +
-            ". Please clear at earliest."
+            ". Please clear at earliest.",
         )
       : null,
   }));
@@ -81,7 +79,10 @@ export default async function Credit() {
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-blue-900 text-white px-6 py-3 flex items-center gap-4 shadow-md">
-        <Link href="/dashboard" className="text-blue-300 hover:text-white text-sm">
+        <Link
+          href="/dashboard"
+          className="text-blue-300 hover:text-white text-sm"
+        >
           ← Dashboard
         </Link>
         <h1 className="text-lg font-bold">📒 Credit Management</h1>
@@ -90,25 +91,33 @@ export default async function Credit() {
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl shadow p-4 border-l-4 border-red-500">
-            <p className="text-xs text-gray-500 uppercase font-semibold">Total Pending</p>
+            <p className="text-xs text-gray-500 uppercase font-semibold">
+              Total Pending
+            </p>
             <p className="text-2xl font-bold text-red-600 mt-1">
               ₹{totalPending.toFixed(0)}
             </p>
           </div>
           <div className="bg-white rounded-xl shadow p-4 border-l-4 border-green-400">
-            <p className="text-xs text-gray-500 uppercase font-semibold">0–30 Days</p>
+            <p className="text-xs text-gray-500 uppercase font-semibold">
+              0–30 Days
+            </p>
             <p className="text-2xl font-bold text-green-600 mt-1">
               ₹{aging.d30.toFixed(0)}
             </p>
           </div>
           <div className="bg-white rounded-xl shadow p-4 border-l-4 border-yellow-400">
-            <p className="text-xs text-gray-500 uppercase font-semibold">31–60 Days</p>
+            <p className="text-xs text-gray-500 uppercase font-semibold">
+              31–60 Days
+            </p>
             <p className="text-2xl font-bold text-yellow-600 mt-1">
               ₹{aging.d60.toFixed(0)}
             </p>
           </div>
           <div className="bg-white rounded-xl shadow p-4 border-l-4 border-red-700">
-            <p className="text-xs text-gray-500 uppercase font-semibold">60+ Days</p>
+            <p className="text-xs text-gray-500 uppercase font-semibold">
+              60+ Days
+            </p>
             <p className="text-2xl font-bold text-red-800 mt-1">
               ₹{aging.d60plus.toFixed(0)}
             </p>
@@ -122,7 +131,14 @@ export default async function Credit() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>
-                {["Patient", "Phone", "Total Credit", "Paid", "Pending", "Action"].map((h) => (
+                {[
+                  "Patient",
+                  "Phone",
+                  "Total Credit",
+                  "Paid",
+                  "Pending",
+                  "Action",
+                ].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase"
@@ -142,10 +158,16 @@ export default async function Credit() {
               )}
               {patientsWithHref.map((p, i) => (
                 <tr key={i} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
+                  <td className="px-4 py-3 font-medium text-gray-800">
+                    {p.name}
+                  </td>
                   <td className="px-4 py-3 text-gray-500">{p.phone || "—"}</td>
-                  <td className="px-4 py-3 text-gray-700">₹{p.total.toFixed(0)}</td>
-                  <td className="px-4 py-3 text-green-600">₹{p.paid.toFixed(0)}</td>
+                  <td className="px-4 py-3 text-gray-700">
+                    ₹{p.total.toFixed(0)}
+                  </td>
+                  <td className="px-4 py-3 text-green-600">
+                    ₹{p.paid.toFixed(0)}
+                  </td>
                   <td className="px-4 py-3 font-bold text-red-600">
                     ₹{p.pending.toFixed(0)}
                   </td>

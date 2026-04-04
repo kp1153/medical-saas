@@ -4,12 +4,10 @@ import { sales, saleItems } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import PrintButton from "./PrintButton";
-import { getSession } from "@/lib/session";
-import { redirect } from "next/navigation";
+import { requireAccess } from "@/lib/access";
 
 export default async function BillDetail({ params }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  await requireAccess();
 
   const { id } = await params;
   const bill = await db

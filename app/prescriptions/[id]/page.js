@@ -3,13 +3,12 @@ import { prescriptions, patients } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getSession } from "@/lib/session";
+import { requireAccess } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
 export default async function PrintPrescription({ params }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  await requireAccess();
 
   const { id } = await params;
   const pid = parseInt(id);
