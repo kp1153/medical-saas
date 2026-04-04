@@ -136,9 +136,7 @@ export default async function Credit() {
                   <td className="px-4 py-3">
                     {p.phone && (
                       
-                        href={`https://wa.me/91${p.phone}?text=${encodeURIComponent(
-                          `Dear ${p.name}, your pending amount is ₹${p.pending.toFixed(0)}. Please clear at earliest.`
-                        )}`}
+                      href={`https://wa.me/91${p.phone}?text=${encodeURIComponent("Dear " + p.name + ", your pending amount is \u20B9" + p.pending.toFixed(0) + ". Please clear at earliest.")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="bg-green-500 hover:bg-green-400 text-white px-3 py-1 rounded-lg text-xs font-semibold transition"
