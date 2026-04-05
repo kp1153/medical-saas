@@ -26,6 +26,7 @@ export async function POST(req) {
 
     await db.insert(purchaseItems).values({
       purchaseId,
+      medicineId: item.medicineId || null,
       medicineName: item.medicineName,
       batch: item.batch || null,
       expiry: item.expiry || null,
@@ -36,7 +37,6 @@ export async function POST(req) {
       amount: parseFloat(item.amount) || 0,
     });
 
-    // update stock in medicines table
     const existing = await db.select().from(medicines)
       .where(eq(medicines.name, item.medicineName)).limit(1);
 
