@@ -35,37 +35,24 @@ export async function GET(request) {
   const name = claims.name;
   const picture = claims.picture;
 
-  // google_users table update
   const existing = await db
     .select()
     .from(googleUsers)
     .where(eq(googleUsers.googleId, googleId))
     .limit(1);
 
-  let userId;
   if (existing.length === 0) {
-    const inserted = await db
-      .insert(googleUsers)
-      .values({ googleId, email, name, picture })
-      .returning({ id: googleUsers.id });
-    userId = inserted[0].id;
+    await db.insert(googleUsers).values({ googleId, email, name, picture });
   } else {
-    userId = existing[0].id;
-    await db
-      .update(googleUsers)
-      .set({ name, picture })
-      .where(eq(googleUsers.googleId, googleId));
+    await db.update(googleUsers).set({ name, picture }).where(eq(googleUsers.googleId, googleId));
   }
 
-  // users table — KP website इसी में activate करती है
-  const existingUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  const googleUserRow = await db.select().from(googleUsers).where(eq(googleUsers.googleId, googleId)).limit(1);
+  const userId = googleUserRow[0].id;
+
+  const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
   if (existingUser.length === 0) {
-    // नया user — trial शुरू
     const trialEnds = new Date();
     trialEnds.setDate(trialEnds.getDate() + TRIAL_DAYS);
     await db.insert(users).values({
@@ -77,13 +64,7 @@ export async function GET(request) {
     });
   }
 
-  // access check
-  const userRow = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
-
+  const userRow = await db.select().from(users).where(eq(users.email, email)).limit(1);
   const u = userRow[0];
   const isDeveloper = email === DEVELOPER_EMAIL;
   const isActive = u?.status === "active" && u?.expiryDate && new Date(u.expiryDate) > new Date();
