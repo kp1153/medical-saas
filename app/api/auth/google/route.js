@@ -14,15 +14,15 @@ export async function GET() {
   const cookieStore = await cookies();
   cookieStore.set("google_oauth_state", state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: true,
+    sameSite: "none",
     maxAge: 600,
     path: "/",
   });
   cookieStore.set("google_code_verifier", codeVerifier, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: true,
+    sameSite: "none",
     maxAge: 600,
     path: "/",
   });
