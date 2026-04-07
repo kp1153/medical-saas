@@ -26,7 +26,7 @@ export default function Home() {
         <p className="text-blue-200 text-lg mb-8 max-w-xl mx-auto">
           GST Bills · Stock Management · Credit Tracking · Doctor Prescription — all in one place.
         </p>
-        <Link href="/register"
+        <Link href="/login"
           className="bg-green-500 hover:bg-green-400 text-white px-10 py-4 rounded-xl font-bold text-lg shadow-lg transition">
           Start Free Trial
         </Link>
