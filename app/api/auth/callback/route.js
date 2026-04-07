@@ -1,5 +1,4 @@
 import { googleClient } from "@/lib/auth";
-import { decodeIdToken } from "arctic";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { googleUsers, users } from "@/lib/schema";
@@ -15,69 +14,73 @@ export async function GET(request) {
   const state = url.searchParams.get("state");
 
   const cookieStore = await cookies();
-  const storedState = cookieStore.get("google_oauth_state")?.value ?? null;
-  const codeVerifier = cookieStore.get("google_code_verifier")?.value ?? null;
+  const savedState = cookieStore.get("google_state")?.value;
+  const codeVerifier = cookieStore.get("google_code_verifier")?.value;
 
-  if (!code || !state || !storedState || !codeVerifier || state !== storedState) {
-    return new Response("Invalid OAuth state", { status: 400 });
+  if (!code || !state || state !== savedState || !codeVerifier) {
+    return new Response("Invalid request", { status: 400 });
   }
 
-  let tokens;
-  try {
-    tokens = await googleClient.validateAuthorizationCode(code, codeVerifier);
-  } catch {
-    return new Response("Failed to validate code", { status: 400 });
-  }
+  const tokens = await googleClient.validateAuthorizationCode(code, codeVerifier);
+  const accessToken = tokens.accessToken();
 
-  const claims = decodeIdToken(tokens.idToken());
-  const googleId = claims.sub;
-  const email = claims.email;
-  const name = claims.name;
-  const picture = claims.picture;
+  const googleRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const googleUser = await googleRes.json();
 
   const existing = await db
     .select()
     .from(googleUsers)
-    .where(eq(googleUsers.googleId, googleId))
+    .where(eq(googleUsers.googleId, googleUser.id))
     .limit(1);
 
   if (existing.length === 0) {
-    await db.insert(googleUsers).values({ googleId, email, name, picture });
+    await db.insert(googleUsers).values({
+      googleId: googleUser.id,
+      email: googleUser.email,
+      name: googleUser.name,
+      picture: googleUser.picture,
+    });
   } else {
-    await db.update(googleUsers).set({ name, picture }).where(eq(googleUsers.googleId, googleId));
+    await db.update(googleUsers)
+      .set({ name: googleUser.name, picture: googleUser.picture })
+      .where(eq(googleUsers.googleId, googleUser.id));
   }
 
-  const googleUserRow = await db.select().from(googleUsers).where(eq(googleUsers.googleId, googleId)).limit(1);
-  const userId = googleUserRow[0].id;
-
-  const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const existingUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, googleUser.email))
+    .limit(1);
 
   if (existingUser.length === 0) {
     const trialEnds = new Date();
     trialEnds.setDate(trialEnds.getDate() + TRIAL_DAYS);
     await db.insert(users).values({
-      email,
-      name,
+      email: googleUser.email,
+      name: googleUser.name,
       status: "trial",
       expiryDate: trialEnds.toISOString(),
       reminderSent: 0,
     });
   }
 
-  const userRow = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const userRow = await db.select().from(users).where(eq(users.email, googleUser.email)).limit(1);
   const u = userRow[0];
-  const isDeveloper = email === DEVELOPER_EMAIL;
+  const isDeveloper = googleUser.email === DEVELOPER_EMAIL;
   const isActive = u?.status === "active" && u?.expiryDate && new Date(u.expiryDate) > new Date();
   const isTrial = u?.status === "trial" && u?.expiryDate && new Date(u.expiryDate) > new Date();
 
-  await createSessionCookie({ userId, email, name, picture });
-
-  cookieStore.delete("google_oauth_state");
-  cookieStore.delete("google_code_verifier");
+  await createSessionCookie({
+    email: googleUser.email,
+    name: googleUser.name,
+    picture: googleUser.picture,
+  });
 
   if (isDeveloper || isActive || isTrial) {
-    return Response.redirect(new URL("/dashboard", request.url).toString());
+    return Response.redirect(new URL("/dashboard", process.env.NEXT_PUBLIC_BASE_URL));
   }
 
-  return Response.redirect(new URL("/expired", request.url).toString());
+  return Response.redirect(new URL("/expired", process.env.NEXT_PUBLIC_BASE_URL));
 }
