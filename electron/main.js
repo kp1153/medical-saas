@@ -1,5 +1,4 @@
-const { app, BrowserWindow, shell } = require("electron");
-const path = require("path");
+const { app, BrowserWindow } = require("electron");
 
 const PROD_URL = "https://medical-saas-32pt.vercel.app";
 const DEV_URL = "http://localhost:3000";
@@ -16,6 +15,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      webSecurity: false,
     },
     show: false,
   });
@@ -27,11 +27,6 @@ function createWindow() {
     mainWindow.show();
   });
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: "deny" };
-  });
-
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -39,7 +34,6 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
-
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
