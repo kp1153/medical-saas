@@ -1,24 +1,24 @@
 import { googleClient } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users, googleUsers, preActivations } from "@/lib/schema";
-import { createSession, SESSION_COOKIE } from "@/lib/session";
+import { createSession } from "@/lib/session";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 const DEVELOPER_EMAIL = "prasad.kamta@gmail.com";
 const TRIAL_DAYS = 7;
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
-async function setSessionAndRedirect(cookieStore, token, path) {
-  cookieStore.set(SESSION_COOKIE, token, {
+function redirectWithCookie(request, path, token) {
+  const response = NextResponse.redirect(new URL(path, request.url));
+  response.cookies.set("session", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
   });
-  return NextResponse.redirect(new URL(path, BASE_URL));
+  return response;
 }
 
 export async function GET(request) {
@@ -30,9 +30,9 @@ export async function GET(request) {
   const savedState = cookieStore.get("google_state")?.value;
   const codeVerifier = cookieStore.get("google_code_verifier")?.value;
 
-  if (!code) return NextResponse.redirect(new URL("/login?error=no_code", BASE_URL));
-  if (!savedState || !codeVerifier) return NextResponse.redirect(new URL("/login?error=no_state_cookie", BASE_URL));
-  if (state !== savedState) return NextResponse.redirect(new URL("/login?error=state_mismatch", BASE_URL));
+  if (!code || !state || state !== savedState) {
+    return NextResponse.redirect(new URL("/login?error=invalid", request.url));
+  }
 
   try {
     const tokens = await googleClient.validateAuthorizationCode(code, codeVerifier);
@@ -43,7 +43,6 @@ export async function GET(request) {
     });
     const googleUser = await userRes.json();
 
-    // Google user record
     const gu = await db.select().from(googleUsers).where(eq(googleUsers.googleId, googleUser.id)).limit(1);
     if (gu.length === 0) {
       await db.insert(googleUsers).values({
@@ -54,7 +53,6 @@ export async function GET(request) {
       });
     }
 
-    // Main user record
     let userRow = await db.select().from(users).where(eq(users.email, googleUser.email)).limit(1);
 
     if (userRow.length === 0) {
@@ -70,24 +68,12 @@ export async function GET(request) {
       userRow = await db.select().from(users).where(eq(users.email, googleUser.email)).limit(1);
     }
 
-    // KEY FIX: pre_activations check — अगर hub ने पहले activate किया था
-    const preAct = await db
-      .select()
-      .from(preActivations)
-      .where(eq(preActivations.email, googleUser.email))
-      .limit(1);
-
+    const preAct = await db.select().from(preActivations).where(eq(preActivations.email, googleUser.email)).limit(1);
     if (preAct.length > 0) {
       const expiry = new Date();
       expiry.setMonth(expiry.getMonth() + 12);
-      await db
-        .update(users)
-        .set({ status: "active", expiryDate: expiry.toISOString(), reminderSent: 0 })
-        .where(eq(users.email, googleUser.email));
-      await db
-        .delete(preActivations)
-        .where(eq(preActivations.email, googleUser.email));
-      // Updated record fetch
+      await db.update(users).set({ status: "active", expiryDate: expiry.toISOString(), reminderSent: 0 }).where(eq(users.email, googleUser.email));
+      await db.delete(preActivations).where(eq(preActivations.email, googleUser.email));
       userRow = await db.select().from(users).where(eq(users.email, googleUser.email)).limit(1);
     }
 
@@ -102,7 +88,7 @@ export async function GET(request) {
     });
 
     if (u.email === DEVELOPER_EMAIL) {
-      return setSessionAndRedirect(cookieStore, token, "/dashboard");
+      return redirectWithCookie(request, "/dashboard", token);
     }
 
     const now = new Date();
@@ -111,12 +97,12 @@ export async function GET(request) {
     const isTrial = u.status === "trial" && expiryDate && now < expiryDate;
 
     if (isActive || isTrial) {
-      return setSessionAndRedirect(cookieStore, token, "/dashboard");
+      return redirectWithCookie(request, "/dashboard", token);
     }
 
-    return setSessionAndRedirect(cookieStore, token, "/expired");
+    return redirectWithCookie(request, "/expired", token);
   } catch (e) {
     console.error("Callback error:", e);
-    return NextResponse.redirect(new URL("/login?error=failed", BASE_URL));
+    return NextResponse.redirect(new URL("/login?error=failed", request.url));
   }
 }
