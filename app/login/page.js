@@ -8,7 +8,11 @@ export default function Login() {
   useEffect(() => {
     fetch("/api/auth/session-check")
       .then((r) => r.json())
-      .then((d) => { if (d.ok) router.replace("/dashboard"); });
+      .then((d) => {
+        if (d.ok && (d.user?.status === "active" || d.user?.status === "trial")) {
+          router.replace("/dashboard");
+        }
+      });
   }, [router]);
 
   return (

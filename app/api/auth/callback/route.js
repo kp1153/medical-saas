@@ -1,6 +1,6 @@
 import { googleClient } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users, googleUsers } from "@/lib/schema";
+import { users, googleUsers, preActivations } from "@/lib/schema";
 import { createSession, SESSION_COOKIE } from "@/lib/session";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
@@ -10,8 +10,6 @@ const DEVELOPER_EMAIL = "prasad.kamta@gmail.com";
 const TRIAL_DAYS = 7;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
-// KEY FIX: cookieStore.set() is the Next.js 15/16 recommended way.
-// response.cookies.set() on a redirect is unreliable behind reverse proxies.
 async function setSessionAndRedirect(cookieStore, token, path) {
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -20,7 +18,6 @@ async function setSessionAndRedirect(cookieStore, token, path) {
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
   });
-  // KEY FIX: BASE_URL ensures correct public domain, not internal localhost URL
   return NextResponse.redirect(new URL(path, BASE_URL));
 }
 
@@ -33,16 +30,9 @@ export async function GET(request) {
   const savedState = cookieStore.get("google_state")?.value;
   const codeVerifier = cookieStore.get("google_code_verifier")?.value;
 
-  // Separate error messages for easier debugging
-  if (!code) {
-    return NextResponse.redirect(new URL("/login?error=no_code", BASE_URL));
-  }
-  if (!savedState || !codeVerifier) {
-    return NextResponse.redirect(new URL("/login?error=no_state_cookie", BASE_URL));
-  }
-  if (state !== savedState) {
-    return NextResponse.redirect(new URL("/login?error=state_mismatch", BASE_URL));
-  }
+  if (!code) return NextResponse.redirect(new URL("/login?error=no_code", BASE_URL));
+  if (!savedState || !codeVerifier) return NextResponse.redirect(new URL("/login?error=no_state_cookie", BASE_URL));
+  if (state !== savedState) return NextResponse.redirect(new URL("/login?error=state_mismatch", BASE_URL));
 
   try {
     const tokens = await googleClient.validateAuthorizationCode(code, codeVerifier);
@@ -53,12 +43,8 @@ export async function GET(request) {
     });
     const googleUser = await userRes.json();
 
-    const gu = await db
-      .select()
-      .from(googleUsers)
-      .where(eq(googleUsers.googleId, googleUser.id))
-      .limit(1);
-
+    // Google user record
+    const gu = await db.select().from(googleUsers).where(eq(googleUsers.googleId, googleUser.id)).limit(1);
     if (gu.length === 0) {
       await db.insert(googleUsers).values({
         googleId: googleUser.id,
@@ -68,11 +54,8 @@ export async function GET(request) {
       });
     }
 
-    let userRow = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, googleUser.email))
-      .limit(1);
+    // Main user record
+    let userRow = await db.select().from(users).where(eq(users.email, googleUser.email)).limit(1);
 
     if (userRow.length === 0) {
       const trialEnds = new Date();
@@ -84,11 +67,28 @@ export async function GET(request) {
         expiryDate: trialEnds.toISOString(),
         reminderSent: 0,
       });
-      userRow = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, googleUser.email))
-        .limit(1);
+      userRow = await db.select().from(users).where(eq(users.email, googleUser.email)).limit(1);
+    }
+
+    // KEY FIX: pre_activations check — अगर hub ने पहले activate किया था
+    const preAct = await db
+      .select()
+      .from(preActivations)
+      .where(eq(preActivations.email, googleUser.email))
+      .limit(1);
+
+    if (preAct.length > 0) {
+      const expiry = new Date();
+      expiry.setMonth(expiry.getMonth() + 12);
+      await db
+        .update(users)
+        .set({ status: "active", expiryDate: expiry.toISOString(), reminderSent: 0 })
+        .where(eq(users.email, googleUser.email));
+      await db
+        .delete(preActivations)
+        .where(eq(preActivations.email, googleUser.email));
+      // Updated record fetch
+      userRow = await db.select().from(users).where(eq(users.email, googleUser.email)).limit(1);
     }
 
     const u = userRow[0];
