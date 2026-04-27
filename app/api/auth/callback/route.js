@@ -8,17 +8,20 @@ import { NextResponse } from "next/server";
 
 const DEVELOPER_EMAIL = "prasad.kamta@gmail.com";
 const TRIAL_DAYS = 7;
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
-function redirectWithCookie(request, path, token) {
-  const response = NextResponse.redirect(new URL(path, request.url));
-  response.cookies.set(SESSION_COOKIE, token, {
+// KEY FIX: cookieStore.set() is the Next.js 15/16 recommended way.
+// response.cookies.set() on a redirect is unreliable behind reverse proxies.
+async function setSessionAndRedirect(cookieStore, token, path) {
+  cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
   });
-  return response;
+  // KEY FIX: BASE_URL ensures correct public domain, not internal localhost URL
+  return NextResponse.redirect(new URL(path, BASE_URL));
 }
 
 export async function GET(request) {
@@ -30,8 +33,15 @@ export async function GET(request) {
   const savedState = cookieStore.get("google_state")?.value;
   const codeVerifier = cookieStore.get("google_code_verifier")?.value;
 
-  if (!code || !state || state !== savedState || !codeVerifier) {
-    return NextResponse.redirect(new URL("/login?error=invalid", request.url));
+  // Separate error messages for easier debugging
+  if (!code) {
+    return NextResponse.redirect(new URL("/login?error=no_code", BASE_URL));
+  }
+  if (!savedState || !codeVerifier) {
+    return NextResponse.redirect(new URL("/login?error=no_state_cookie", BASE_URL));
+  }
+  if (state !== savedState) {
+    return NextResponse.redirect(new URL("/login?error=state_mismatch", BASE_URL));
   }
 
   try {
@@ -92,7 +102,7 @@ export async function GET(request) {
     });
 
     if (u.email === DEVELOPER_EMAIL) {
-      return redirectWithCookie(request, "/dashboard", token);
+      return setSessionAndRedirect(cookieStore, token, "/dashboard");
     }
 
     const now = new Date();
@@ -101,12 +111,12 @@ export async function GET(request) {
     const isTrial = u.status === "trial" && expiryDate && now < expiryDate;
 
     if (isActive || isTrial) {
-      return redirectWithCookie(request, "/dashboard", token);
+      return setSessionAndRedirect(cookieStore, token, "/dashboard");
     }
 
-    return redirectWithCookie(request, "/expired", token);
+    return setSessionAndRedirect(cookieStore, token, "/expired");
   } catch (e) {
     console.error("Callback error:", e);
-    return NextResponse.redirect(new URL("/login?error=failed", request.url));
+    return NextResponse.redirect(new URL("/login?error=failed", BASE_URL));
   }
 }
