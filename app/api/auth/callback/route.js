@@ -1,16 +1,17 @@
 import { googleClient } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users, googleUsers } from "@/lib/schema";
-import { createSession } from "@/lib/session";
+import { createSession, SESSION_COOKIE } from "@/lib/session";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 const DEVELOPER_EMAIL = "prasad.kamta@gmail.com";
+const TRIAL_DAYS = 7;
 
 function redirectWithCookie(request, path, token) {
   const response = NextResponse.redirect(new URL(path, request.url));
-  response.cookies.set("session", token, {
+  response.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
@@ -42,7 +43,7 @@ export async function GET(request) {
     });
     const googleUser = await userRes.json();
 
-    let gu = await db
+    const gu = await db
       .select()
       .from(googleUsers)
       .where(eq(googleUsers.googleId, googleUser.id))
@@ -65,7 +66,7 @@ export async function GET(request) {
 
     if (userRow.length === 0) {
       const trialEnds = new Date();
-      trialEnds.setDate(trialEnds.getDate() + 7);
+      trialEnds.setDate(trialEnds.getDate() + TRIAL_DAYS);
       await db.insert(users).values({
         email: googleUser.email,
         name: googleUser.name,
