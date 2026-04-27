@@ -42,14 +42,7 @@ export default async function Expired() {
             className="block w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-2xl transition mb-6"
           >
             WhatsApp सहायता
-          </a>
-
-          <Link
-            href="/login"
-            className="text-gray-400 hover:text-gray-600 text-sm underline"
-          >
-            लॉगिन पर वापस
-          </Link>
+          </a>          
         </div>
       </div>
     </main>
