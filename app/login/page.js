@@ -31,7 +31,7 @@ export default function Login() {
             Sign in with your Google account to access the dashboard
           </p>
 
-          
+          <a
             href="/api/auth/google"
             className="flex items-center justify-center gap-3 w-full bg-white hover:bg-gray-50 text-gray-800 font-semibold py-3.5 px-6 rounded-2xl shadow-lg transition active:scale-95"
           >
