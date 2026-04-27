@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +5,7 @@ export const dynamic = "force-dynamic";
 export default async function Expired() {
   const session = await getSession();
   const email = session?.email || "";
-  const hubUrl = `https://nishantsoftwares.in/clinic${email ? `?email=${encodeURIComponent(email)}` : ""}`;
+  const hubUrl = `https://nishantsoftwares.in/payment?software=clinic&email=${encodeURIComponent(email)}`;
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -23,9 +22,9 @@ export default async function Expired() {
           <div className="bg-blue-50 rounded-2xl p-4 mb-6 text-left">
             <p className="text-sm font-semibold text-blue-800 mb-1">ClinicOS लाइसेंस</p>
             <p className="text-2xl font-extrabold text-blue-700 mb-1">
-              ₹४,९९९ <span className="text-sm font-normal text-blue-500">/ साल</span>
+              ₹4,999 <span className="text-sm font-normal text-blue-500">/ साल</span>
             </p>
-            <p className="text-xs text-blue-500">नवीनीकरण: ₹१,९९९ / साल</p>
+            <p className="text-xs text-blue-500">नवीनीकरण: ₹2,500 / साल</p>
           </div>
 
           <a
@@ -39,10 +38,10 @@ export default async function Expired() {
             href="https://wa.me/919996865069"
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-2xl transition mb-6"
+            className="block w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-2xl transition"
           >
             WhatsApp सहायता
-          </a>          
+          </a>
         </div>
       </div>
     </main>
