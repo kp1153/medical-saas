@@ -7,13 +7,15 @@ const db = createClient({
 
 export async function POST(request) {
   const body = await request.json();
-  const { email, name, months, secret } = body;
+  const { email, name, months, HUB_SECRET } = body;
 
-  if (secret !== process.env.ACTIVATION_SECRET) {
+  if (HUB_SECRET !== process.env.HUB_SECRET) {
     return Response.json({ success: false, error: "unauthorized" }, { status: 401 });
   }
 
-  if (!email) return Response.json({ success: false, error: "email required" }, { status: 400 });
+  if (!email) {
+    return Response.json({ success: false, error: "email required" }, { status: 400 });
+  }
 
   const expiry = new Date();
   expiry.setMonth(expiry.getMonth() + (months || 12));
@@ -24,16 +26,28 @@ export async function POST(request) {
   });
 
   if (existing.rows.length === 0) {
+    // user अभी login नहीं किया — pre_activations में रखो
     await db.execute({
-      sql: "INSERT INTO users (email, name, status, expiry_date, reminder_sent) VALUES (?, ?, 'active', ?, 0)",
-      args: [email, name || "", expiry.toISOString()],
+      sql: "INSERT INTO pre_activations (email) VALUES (?) ON CONFLICT(email) DO NOTHING",
+      args: [email],
     });
-  } else {
-    await db.execute({
-      sql: "UPDATE users SET status = 'active', expiry_date = ?, reminder_sent = 0 WHERE email = ?",
-      args: [expiry.toISOString(), email],
+    return Response.json({
+      success: true,
+      pending: true,
+      email,
+      message: "Payment recorded. Activation will complete on first login.",
     });
   }
 
-  return Response.json({ success: true, email, expiryDate: expiry.toISOString() });
+  // user पहले से login — सीधा activate
+  await db.execute({
+    sql: "UPDATE users SET status = 'active', expiry_date = ?, reminder_sent = 0 WHERE email = ?",
+    args: [expiry.toISOString(), email],
+  });
+
+  return Response.json({
+    success: true,
+    email,
+    expiryDate: expiry.toISOString(),
+  });
 }

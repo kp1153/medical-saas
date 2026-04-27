@@ -1,12 +1,36 @@
 import { googleClient } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { googleUsers, users } from "@/lib/schema";
+import { googleUsers, users, preActivations } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { createSessionCookie } from "@/lib/session";
+import { SignJWT } from "jose";
+import { NextResponse } from "next/server";
 
 const DEVELOPER_EMAIL = "prasad.kamta@gmail.com";
 const TRIAL_DAYS = 7;
+const COOKIE = "clinic_session";
+const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET);
+
+async function makeToken(payload) {
+  return await new SignJWT(payload)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("7d")
+    .sign(SECRET);
+}
+
+function redirectWithCookie(targetPath, token) {
+  const url = new URL(targetPath, process.env.NEXT_PUBLIC_BASE_URL);
+  const response = NextResponse.redirect(url);
+  response.cookies.set(COOKIE, token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7,
+    path: "/",
+  });
+  return response;
+}
 
 export async function GET(request) {
   const url = new URL(request.url);
@@ -29,6 +53,7 @@ export async function GET(request) {
   });
   const googleUser = await googleRes.json();
 
+  // 1. google_users upsert
   const existing = await db
     .select()
     .from(googleUsers)
@@ -43,11 +68,20 @@ export async function GET(request) {
       picture: googleUser.picture,
     });
   } else {
-    await db.update(googleUsers)
+    await db
+      .update(googleUsers)
       .set({ name: googleUser.name, picture: googleUser.picture })
       .where(eq(googleUsers.googleId, googleUser.id));
   }
 
+  // 2. pre_activations check (payment-first flow)
+  const preActive = await db
+    .select()
+    .from(preActivations)
+    .where(eq(preActivations.email, googleUser.email))
+    .limit(1);
+
+  // 3. users row का status decide करो
   const existingUser = await db
     .select()
     .from(users)
@@ -55,32 +89,72 @@ export async function GET(request) {
     .limit(1);
 
   if (existingUser.length === 0) {
-    const trialEnds = new Date();
-    trialEnds.setDate(trialEnds.getDate() + TRIAL_DAYS);
-    await db.insert(users).values({
-      email: googleUser.email,
-      name: googleUser.name,
-      status: "trial",
-      expiryDate: trialEnds.toISOString(),
-      reminderSent: 0,
-    });
+    if (preActive.length > 0) {
+      // payment पहले हुआ था — सीधा active 1 साल
+      const expiry = new Date();
+      expiry.setFullYear(expiry.getFullYear() + 1);
+      await db.insert(users).values({
+        email: googleUser.email,
+        name: googleUser.name,
+        status: "active",
+        expiryDate: expiry.toISOString(),
+        reminderSent: 0,
+      });
+      await db
+        .delete(preActivations)
+        .where(eq(preActivations.email, googleUser.email));
+    } else {
+      // नया user — 7 दिन trial
+      const trialEnds = new Date();
+      trialEnds.setDate(trialEnds.getDate() + TRIAL_DAYS);
+      await db.insert(users).values({
+        email: googleUser.email,
+        name: googleUser.name,
+        status: "trial",
+        expiryDate: trialEnds.toISOString(),
+        reminderSent: 0,
+      });
+    }
+  } else if (preActive.length > 0) {
+    // user पहले से था (expired/trial), payment अभी हुआ
+    const expiry = new Date();
+    expiry.setFullYear(expiry.getFullYear() + 1);
+    await db
+      .update(users)
+      .set({
+        status: "active",
+        expiryDate: expiry.toISOString(),
+        reminderSent: 0,
+      })
+      .where(eq(users.email, googleUser.email));
+    await db
+      .delete(preActivations)
+      .where(eq(preActivations.email, googleUser.email));
   }
 
-  const userRow = await db.select().from(users).where(eq(users.email, googleUser.email)).limit(1);
-  const u = userRow[0];
-  const isDeveloper = googleUser.email === DEVELOPER_EMAIL;
-  const isActive = u?.status === "active" && u?.expiryDate && new Date(u.expiryDate) > new Date();
-  const isTrial = u?.status === "trial" && u?.expiryDate && new Date(u.expiryDate) > new Date();
-
-  await createSessionCookie({
+  // 4. session token create करो (हर redirect पर cookie attach होगी)
+  const token = await makeToken({
     email: googleUser.email,
     name: googleUser.name,
     picture: googleUser.picture,
   });
 
+  // 5. final user state से decide करो redirect कहाँ
+  const userRow = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, googleUser.email))
+    .limit(1);
+  const u = userRow[0];
+
+  const isDeveloper = googleUser.email === DEVELOPER_EMAIL;
+  const expiryDate = u?.expiryDate ? new Date(u.expiryDate) : null;
+  const isActive = u?.status === "active" && expiryDate && expiryDate > new Date();
+  const isTrial = u?.status === "trial" && expiryDate && expiryDate > new Date();
+
   if (isDeveloper || isActive || isTrial) {
-    return Response.redirect(new URL("/dashboard", process.env.NEXT_PUBLIC_BASE_URL));
+    return redirectWithCookie("/dashboard", token);
   }
 
-  return Response.redirect(new URL("/expired", process.env.NEXT_PUBLIC_BASE_URL));
+  return redirectWithCookie("/expired", token);
 }
