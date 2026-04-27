@@ -1,6 +1,6 @@
 import { googleClient } from "@/lib/auth";
 import { generateState, generateCodeVerifier } from "arctic";
-import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   const state = generateState();
@@ -11,21 +11,20 @@ export async function GET() {
     "email",
   ]);
 
-  const cookieStore = await cookies();
-  cookieStore.set("google_state", state, {
+  const response = NextResponse.redirect(url.toString());
+  response.cookies.set("google_state", state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "lax",
     maxAge: 600,
     path: "/",
   });
-  cookieStore.set("google_code_verifier", codeVerifier, {
+  response.cookies.set("google_code_verifier", codeVerifier, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "lax",
     maxAge: 600,
     path: "/",
   });
-
-  return Response.redirect(url.toString());
+  return response;
 }
